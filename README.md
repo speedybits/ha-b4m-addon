@@ -123,7 +123,12 @@ After installing the add-on and Extended OpenAI Conversation:
 
 1. **Find your Home Assistant IP**:
    - Go to **Settings → System → Network**
-   - Note your IPv4 address (e.g., `192.168.68.105`)
+   - Note your IPv4 address (e.g., `192.168.68.111`)
+   - **Test the shim is running** (from your computer's terminal):
+     ```bash
+     curl http://YOUR_HA_IP:3000/healthz
+     ```
+     Should return: `{"status":"healthy","service":"bike4mind-shim"}`
 
 2. **Add Extended OpenAI Conversation integration**:
    - In Home Assistant, go to **Settings → Devices & Services**
@@ -141,9 +146,11 @@ After installing the add-on and Extended OpenAI Conversation:
    - If you didn't set one in the add-on, leave this blank
 
    **Base Url:**
-   - ⚠️ **IMPORTANT**: Change this from `https://api.openai.com/v1` to your local IP
-   - Enter: `http://192.168.68.105:3000/v1` (use YOUR actual IP from step 1)
-   - Do NOT use `localhost` or `127.0.0.1`
+   - ⚠️ **IMPORTANT**: Change this from `https://api.openai.com/v1` to your Home Assistant IP
+   - Enter: `http://YOUR_HA_IP:3000/v1` (use YOUR actual HA IP from step 1)
+   - Example: `http://192.168.68.111:3000/v1`
+   - **Must include port 3000**
+   - Do NOT use `localhost` or `127.0.0.1` (won't work)
 
    **Api Version:**
    - Leave blank (not needed)
