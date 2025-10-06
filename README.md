@@ -126,24 +126,38 @@ After installing the add-on and Extended OpenAI Conversation:
    - Note your IPv4 address (e.g., `192.168.68.105`)
    - Or run: `hostname -I | awk '{print $1}'` in terminal
 
-2. **Add Extended OpenAI Conversation**:
-   - Go to **Settings → Devices & Services → Add Integration**
+2. **Add Extended OpenAI Conversation integration**:
+   - In Home Assistant, go to **Settings → Devices & Services**
+   - Click **+ ADD INTEGRATION** (bottom right)
    - Search for "Extended OpenAI Conversation"
-   - Click to add it
+   - Click on it to start the setup wizard
 
-3. **Configure the integration**:
-   - **Name**: "bike4mind"
-   - **Base URL**: `http://YOUR_HA_IP:3000/v1`
-     - Example: `http://192.168.68.105:3000/v1`
-     - **IMPORTANT**: Use your LAN IP, NOT `localhost` (add-ons run in isolated containers)
-   - **API Key**: Enter the `shim_api_key` you configured in the add-on
-   - **Model**: `bike4mind`
-   - **DO NOT** set as default conversation agent
-   - ✅ Enable **"Control Home Assistant"** (for device control via tool-calling)
+3. **Fill in the configuration form** (a dialog will appear with these fields):
 
-4. **Test the connection**:
-   - The integration should show as "Connected"
-   - If it fails, check the add-on logs and verify your IP address
+   **OpenAI API Key field:**
+   - Enter the `shim_api_key` you set in the add-on configuration
+   - Example: If you set `shim_api_key: "mySecureKey123"` in the add-on, enter `mySecureKey123` here
+   - Leave blank if you didn't set a shim_api_key
+
+   **API Base URL field:**
+   - Enter: `http://YOUR_HA_IP:3000/v1`
+   - Replace `YOUR_HA_IP` with your actual IP from step 1
+   - Example: `http://192.168.68.105:3000/v1`
+   - ⚠️ **CRITICAL**: Do NOT use `localhost` or `127.0.0.1` - they won't work!
+
+   **Model field:**
+   - Enter: `bike4mind`
+
+   **Other settings:**
+   - Uncheck "Set as default conversation agent" (keep it OFF)
+   - Check "Control Home Assistant" (turn it ON for device control)
+
+   Click **SUBMIT**
+
+4. **Verify the connection**:
+   - The integration should appear in **Settings → Devices & Services**
+   - It should show as "Connected" or have a green checkmark
+   - If it shows an error, go back to the add-on logs and check for issues
 
 5. **Set up conversation routing** (see Conversation Routing section below)
 
