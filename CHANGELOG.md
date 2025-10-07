@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2025-10-07
+
+### Changed
+- Model configuration field changed from dropdown to text input for flexibility
+- Allows any OpenAI-compatible model name supported by bike4mind
+
 ## [1.1.0] - 2025-10-07
 
 ### Added
