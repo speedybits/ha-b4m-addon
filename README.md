@@ -199,6 +199,7 @@ intents:
           - "hi rosie"
           - "talk to rosie"
           - "let's chat"
+          - "let's have a conversation"
           - "conversation mode"
 
   DeactivateBike4mind:
@@ -206,10 +207,19 @@ intents:
       - sentences:
           - "that's all"
           - "thanks rosie"
+          - "thank you rosie"
           - "stop conversation"
           - "end conversation"
+          - "return to normal mode"
           - "basic mode"
+
+responses:
+  intents:
+    ActivateBike4mind: "bike4mind activated"
+    DeactivateBike4mind: "Returning to basic mode"
 ```
+
+After creating this file, restart Home Assistant to load the custom sentences.
 
 ### Helper Entity
 
@@ -217,48 +227,58 @@ Create an input_boolean helper:
 
 - **Settings → Devices & Services → Helpers → Create Helper → Toggle**
 - Name: "bike4mind Conversation Mode"
-- Entity ID: `input_boolean.bike4mind_mode`
+- Entity ID: `input_boolean.bike4mind_conversation_mode`
 
-### Automations
+### Intent Scripts
 
-Create three automations:
+Add to your `configuration.yaml`:
 
-**1. Activate bike4mind Mode**:
 ```yaml
-alias: Activate bike4mind Conversation
-trigger:
-  - platform: conversation
-    command: "ActivateBike4mind"
-action:
-  - service: input_boolean.turn_on
-    target:
-      entity_id: input_boolean.bike4mind_mode
-  - service: tts.speak
-    data:
-      message: "bike4mind activated"
+intent_script:
+  ActivateBike4mind:
+    speech:
+      text: "bike4mind activated"
+    action:
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.bike4mind_conversation_mode
+      - service: select.select_option
+        data:
+          option: "B4M_Bot"  # Replace with your bike4mind assistant name
+        target:
+          entity_id: select.YOUR_VOICE_SATELLITE_assistant  # Replace with your entity
+
+  DeactivateBike4mind:
+    speech:
+      text: "Returning to basic mode"
+    action:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.bike4mind_conversation_mode
+      - service: select.select_option
+        data:
+          option: "Jarvis"  # Replace with your default assistant name
+        target:
+          entity_id: select.YOUR_VOICE_SATELLITE_assistant  # Replace with your entity
 ```
 
-**2. Deactivate bike4mind Mode**:
-```yaml
-alias: Deactivate bike4mind Conversation
-trigger:
-  - platform: conversation
-    command: "DeactivateBike4mind"
-action:
-  - service: input_boolean.turn_off
-    target:
-      entity_id: input_boolean.bike4mind_mode
-  - service: tts.speak
-    data:
-      message: "Returning to basic mode"
-```
+**Finding your voice satellite entity:**
+- Go to **Developer Tools → States**
+- Search for: `assist` or your device name
+- Look for: `select.DEVICE_NAME_assistant`
+- Example: `select.home_assistant_voice_09e3cd_assistant`
 
-**3. Route to bike4mind**:
+After adding this, restart Home Assistant.
+
+### Optional: Routing Automation
+
+For automatic routing based on the helper state, create this automation:
+
 ```yaml
 alias: Route Conversation to bike4mind
 trigger:
   - platform: state
-    entity_id: input_boolean.bike4mind_mode
+    entity_id: input_boolean.bike4mind_conversation_mode
     to: "on"
 condition: []
 action:
@@ -267,6 +287,8 @@ action:
       agent_id: conversation.bike4mind  # Your Extended OpenAI Conversation entity
       text: "{{ trigger.to_state.attributes.text }}"
 ```
+
+**Note**: This automation is for advanced voice routing. For basic testing with Assist chat, manually switch the conversation agent dropdown.
 
 ## API Endpoints
 
