@@ -22,6 +22,7 @@ B4M_API_KEY = os.environ.get('B4M_API_KEY')
 HA_B4M_SESSION_ID = os.environ.get('HA_B4M_SESSION_ID')
 B4M_USER_ID = os.environ.get('B4M_USER_ID')
 B4M_BASE = os.environ.get('B4M_BASE', 'https://app.bike4mind.com/api')
+B4M_MODEL = os.environ.get('B4M_MODEL', 'gpt-4o-mini')
 SHIM_API_KEY = os.environ.get('SHIM_API_KEY')
 
 # Session management
@@ -142,7 +143,7 @@ async def create_b4m_quest(message: str) -> Optional[str]:
         "fabFileIds": [],
         "messageFileIds": [],
         "params": {
-            "model": "gpt-4o-mini",
+            "model": B4M_MODEL,
             "temperature": 0.7,
             "max_tokens": 500,
             "stream": False

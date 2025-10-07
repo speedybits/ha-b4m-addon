@@ -53,9 +53,12 @@ b4m_api_key: "YOUR_B4M_API_KEY_HERE"
 ha_b4m_session_id: "YOUR_HA_B4M_SESSION_ID_HERE"
 b4m_user_id: "YOUR_B4M_USER_ID_HERE"
 shim_api_key: "create_a_secure_random_key"  # Generate with: openssl rand -hex 32
+b4m_model: "gpt-4o-mini"  # Options: gpt-4o-mini, gpt-4o, gpt-3.5-turbo, gpt-4
 ```
 
-3. Optionally adjust performance settings (leave defaults for now)
+3. Optionally adjust model and performance settings:
+   - **b4m_model**: Select which LLM model to use (default: gpt-4o-mini)
+   - Other performance settings can be left at defaults
 4. Click **Save**
 
 ## Step 4: Start the Add-on

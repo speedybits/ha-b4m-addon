@@ -1,6 +1,6 @@
 name: "bike4mind OpenAI Shim"
 description: "OpenAI-compatible API shim for bike4mind integration with Home Assistant"
-version: "1.0.0"
+version: "1.1.0"
 slug: "b4m_shim"
 init: false
 arch:
@@ -14,6 +14,7 @@ options:
   ha_b4m_session_id: ""
   b4m_user_id: ""
   shim_api_key: ""
+  b4m_model: "gpt-4o-mini"
   session_ttl_sec: 600
   max_turns: 20
   timeout_ms: 60000
@@ -26,6 +27,7 @@ schema:
   ha_b4m_session_id: str
   b4m_user_id: str
   shim_api_key: str?
+  b4m_model: list(gpt-4o-mini|gpt-4o|gpt-3.5-turbo|gpt-4)?
   session_ttl_sec: int(1,3600)?
   max_turns: int(1,100)?
   timeout_ms: int(5000,120000)?

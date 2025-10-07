@@ -107,6 +107,9 @@ docker run -p 3000:3000 \
 ### Optional Settings
 
 - **shim_api_key**: API key for securing shim access (recommended)
+- **b4m_model**: LLM model to use (default: `gpt-4o-mini`)
+  - Options: `gpt-4o-mini`, `gpt-4o`, `gpt-3.5-turbo`, `gpt-4`
+  - Configurable via add-on GUI dropdown
 - **session_ttl_sec**: Session timeout in seconds (default: 600 / 10 minutes)
 - **max_turns**: Maximum conversation turns before reset (default: 20)
 - **timeout_ms**: Total request timeout in milliseconds (default: 60000 / 60 seconds)
