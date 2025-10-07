@@ -37,9 +37,8 @@ Home Assistant Extended OpenAI Conversation
 
 ### Prerequisites
 
-**Extended OpenAI Conversation Integration** is required. Install it first:
+**Extended OpenAI Conversation Integration** is required. Install it via HACS:
 
-**Option A: Via HACS (Recommended)**
 1. Install HACS if you don't have it: https://hacs.xyz/docs/setup/download
 2. Go to **HACS → Integrations**
 3. Click **⋮** menu → **Custom repositories**
@@ -47,11 +46,6 @@ Home Assistant Extended OpenAI Conversation
 5. Category: Integration → Click **Add**
 6. Search for "Extended OpenAI Conversation" and click **Download**
 7. Restart Home Assistant
-
-**Option B: Manual Installation**
-1. Download from: https://github.com/jekalmin/extended_openai_conversation
-2. Copy `custom_components/extended_openai_conversation` to your HA config
-3. Restart Home Assistant
 
 ### Step 1: Install bike4mind Shim Add-on
 
