@@ -69,27 +69,6 @@ Home Assistant Extended OpenAI Conversation
    - Go to **Info** tab → Click **Start**
    - Check **Log** tab to verify: "Uvicorn running on http://0.0.0.0:3000"
 
-### Option 2: Standalone Docker (Development/Testing)
-
-```bash
-cd ha_b4m_shim
-
-# Set environment variables
-export B4M_API_KEY="your_api_key"
-export HA_B4M_SESSION_ID="your_session_id"
-export B4M_USER_ID="your_user_id"
-export SHIM_API_KEY="your_shim_key"  # optional
-
-# Build and run
-docker build -t b4m-shim .
-docker run -p 3000:3000 \
-  -e B4M_API_KEY \
-  -e HA_B4M_SESSION_ID \
-  -e B4M_USER_ID \
-  -e SHIM_API_KEY \
-  b4m-shim
-```
-
 ## Configuration
 
 ### Required Settings
