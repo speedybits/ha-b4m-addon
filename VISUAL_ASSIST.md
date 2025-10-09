@@ -7,8 +7,9 @@ VISUAL_ASSIST is an optional feature for the bike4mind Home Assistant Add-on tha
 ## Feature Description
 
 When enabled, VISUAL_ASSIST will:
-- Display GIF "A" (speaking animation) when the voice assistant is actively speaking
-- Display GIF "B" (idle animation) when the voice assistant is idle/listening
+- Display **idle GIF** when the voice assistant is ready/listening
+- Display **thinking GIF** when bike4mind is processing the request (after request received, before response ready)
+- Display **speaking GIF** when the TTS (Piper) is playing the response
 - Serve these GIFs through an HTTP endpoint accessible from any web browser on the local network
 
 ## Use Cases
@@ -28,12 +29,14 @@ New optional configuration fields:
 options:
   # ... existing options ...
   visual_assist_enabled: false
+  visual_assist_thinking_gif_url: ""
   visual_assist_speaking_gif_url: ""
   visual_assist_idle_gif_url: ""
 
 schema:
   # ... existing schema ...
   visual_assist_enabled: bool?
+  visual_assist_thinking_gif_url: str?
   visual_assist_speaking_gif_url: str?
   visual_assist_idle_gif_url: str?
 ```
@@ -41,12 +44,13 @@ schema:
 ### Configuration Parameters
 
 - **visual_assist_enabled** (default: `false`): Enable/disable the VISUAL_ASSIST feature
-- **visual_assist_speaking_gif_url**: Web URL (HTTP/HTTPS) to GIF displayed when speaking (required if visual_assist_enabled is true)
-- **visual_assist_idle_gif_url**: Web URL (HTTP/HTTPS) to GIF displayed when idle (required if visual_assist_enabled is true)
+- **visual_assist_thinking_gif_url**: Web URL (HTTP/HTTPS) to GIF displayed when bike4mind is thinking/processing (required if visual_assist_enabled is true)
+- **visual_assist_speaking_gif_url**: Web URL (HTTP/HTTPS) to GIF displayed when TTS is speaking (required if visual_assist_enabled is true)
+- **visual_assist_idle_gif_url**: Web URL (HTTP/HTTPS) to GIF displayed when idle/ready (required if visual_assist_enabled is true)
 
 ### Configuration Validation
 
-When `visual_assist_enabled` is `true`, both `visual_assist_speaking_gif_url` and `visual_assist_idle_gif_url` must be non-empty valid URLs.
+When `visual_assist_enabled` is `true`, all three GIF URLs (`visual_assist_thinking_gif_url`, `visual_assist_speaking_gif_url`, and `visual_assist_idle_gif_url`) must be non-empty valid URLs.
 
 ## Architecture
 
@@ -70,14 +74,25 @@ Web Browser Client
 
 #### 1. State Detection
 
-The existing `app.py` tracks its own internal state:
-- Set state to "speaking" when `/v1/chat/completions` request starts processing
-- Track state during bike4mind quest creation and polling
-- Return to "idle" when response is sent to client
+The existing `app.py` tracks its own internal state with three distinct phases:
+
+**Phase 1: Thinking State**
+- Set state to "thinking" when `/v1/chat/completions` request is received
+- Maintain "thinking" during bike4mind quest creation and polling
+- Transition to "speaking" when bike4mind response is ready
+
+**Phase 2: Speaking State**
+- Set state to "speaking" when response is sent to Home Assistant
+- Home Assistant TTS (Piper) plays the audio response
+- Monitor for TTS completion (via HA WebSocket API or timeout)
+
+**Phase 3: Idle State**
+- Return to "idle" when TTS playback completes
+- Also return to "idle" on any error
 
 **Why This Approach:**
 - Direct knowledge of when bike4mind is processing (no external monitoring needed)
-- Simpler implementation (no HA WebSocket API dependency)
+- Clear visual distinction between "thinking" (processing) and "speaking" (TTS playback)
 - Accurate state tracking from the shim's perspective
 
 #### 2. WebSocket Broadcasting
@@ -94,7 +109,7 @@ New routes added to existing FastAPI app (conditionally when VISUAL_ASSIST is en
 **Endpoints:**
 - `GET /visual` - Serves HTML page with GIF viewer (embeds configured GIF URLs)
 - `WebSocket /ws` - Real-time state updates for connected browsers
-- `GET /visual/status` - Returns current assistant state (speaking/idle) and GIF URLs
+- `GET /visual/status` - Returns current assistant state (thinking/speaking/idle) and GIF URLs
 
 #### 4. Web Client
 
@@ -109,17 +124,20 @@ A simple HTML/JavaScript page served at `/visual` that:
 ```
 States:
 - IDLE: Voice assistant is ready, not processing
-- LISTENING: Voice assistant heard wake word, listening for command
-- PROCESSING: Request sent to bike4mind, waiting for response
-- SPEAKING: Text-to-speech is playing response
+- THINKING: bike4mind is processing the request (quest creation and polling)
+- SPEAKING: Text-to-speech (Piper) is playing the response
 - ERROR: Error occurred in processing
 
 Visual Mapping:
 - IDLE → Display idle.gif
-- LISTENING → Display idle.gif (or optionally a third "listening.gif")
-- PROCESSING → Display speaking.gif
+- THINKING → Display thinking.gif
 - SPEAKING → Display speaking.gif
-- ERROR → Display idle.gif (or flash/error state)
+- ERROR → Return to idle.gif
+
+State Flow:
+IDLE → (request received) → THINKING → (response ready) → SPEAKING → (TTS complete) → IDLE
+                                ↓ (error at any point)
+                              IDLE
 ```
 
 ## Technical Design
@@ -154,12 +172,19 @@ Add state tracking to the existing chat completion endpoint:
 # Notify connected clients when request starts
 async def chat_completions(request: ChatCompletionRequest):
     if VISUAL_ASSIST_ENABLED:
-        await broadcast_state("speaking")
+        await broadcast_state("thinking")  # bike4mind is processing
 
     # ... existing quest creation and polling ...
 
+    # Response ready, TTS will start playing
     if VISUAL_ASSIST_ENABLED:
-        await broadcast_state("idle")
+        await broadcast_state("speaking")  # TTS (Piper) is speaking
+
+    # Monitor TTS completion or use timeout
+    # ... TTS monitoring logic ...
+
+    if VISUAL_ASSIST_ENABLED:
+        await broadcast_state("idle")  # Back to ready state
 
     return response
 ```
@@ -190,11 +215,12 @@ Export configuration as environment variables:
 # Export VISUAL_ASSIST configuration
 if bashio::config.true 'visual_assist_enabled'; then
     export VISUAL_ASSIST_ENABLED=true
+    export VISUAL_ASSIST_THINKING_GIF_URL=$(bashio::config 'visual_assist_thinking_gif_url')
     export VISUAL_ASSIST_SPEAKING_GIF_URL=$(bashio::config 'visual_assist_speaking_gif_url')
     export VISUAL_ASSIST_IDLE_GIF_URL=$(bashio::config 'visual_assist_idle_gif_url')
 
     # Validate URLs are non-empty
-    if [ -z "$VISUAL_ASSIST_SPEAKING_GIF_URL" ] || [ -z "$VISUAL_ASSIST_IDLE_GIF_URL" ]; then
+    if [ -z "$VISUAL_ASSIST_THINKING_GIF_URL" ] || [ -z "$VISUAL_ASSIST_SPEAKING_GIF_URL" ] || [ -z "$VISUAL_ASSIST_IDLE_GIF_URL" ]; then
         echo "ERROR: visual_assist_enabled is true but GIF URLs are not configured"
         exit 1
     fi
@@ -214,7 +240,7 @@ python3 app.py
 ```json
 {
   "type": "state_change",
-  "state": "speaking|idle",
+  "state": "thinking|speaking|idle",
   "timestamp": 1234567890
 }
 ```
@@ -247,8 +273,9 @@ Returns current assistant state and configuration.
 **Response:**
 ```json
 {
-  "state": "idle|speaking",
+  "state": "thinking|speaking|idle",
   "visual_assist_enabled": true,
+  "thinking_gif_url": "https://example.com/thinking.gif",
   "speaking_gif_url": "https://example.com/speaking.gif",
   "idle_gif_url": "https://example.com/idle.gif"
 }
@@ -298,6 +325,7 @@ The HTML page will be generated dynamically by the `/visual` endpoint with GIF U
     </div>
     <script>
         // Embed GIF URLs from server configuration
+        const THINKING_GIF_URL = "{{ THINKING_GIF_URL }}";
         const SPEAKING_GIF_URL = "{{ SPEAKING_GIF_URL }}";
         const IDLE_GIF_URL = "{{ IDLE_GIF_URL }}";
     </script>
@@ -351,7 +379,15 @@ class VisualAssistClient {
     }
 
     updateGif(state) {
-        const gifSrc = state === 'speaking' ? SPEAKING_GIF_URL : IDLE_GIF_URL;
+        let gifSrc;
+        if (state === 'thinking') {
+            gifSrc = THINKING_GIF_URL;
+        } else if (state === 'speaking') {
+            gifSrc = SPEAKING_GIF_URL;
+        } else {
+            gifSrc = IDLE_GIF_URL;
+        }
+
         if (this.gifElement.src !== gifSrc) {
             this.gifElement.src = gifSrc + '?t=' + Date.now(); // Cache bust
         }
@@ -364,24 +400,49 @@ const client = new VisualAssistClient();
 
 ## State Detection Strategy
 
-VISUAL_ASSIST monitors the bike4mind shim's internal API activity to track state:
+VISUAL_ASSIST monitors the bike4mind shim's internal API activity to track state with three distinct phases:
 
 **Implementation:**
-- State set to "speaking" when `/v1/chat/completions` request received
-- State maintained during bike4mind quest creation and polling
-- State returns to "idle" when response is sent to client
+
+1. **Thinking State** (bike4mind processing):
+   - State set to "thinking" when `/v1/chat/completions` request received
+   - State maintained during bike4mind quest creation and polling
+   - Transition to "speaking" when bike4mind response is ready
+
+2. **Speaking State** (TTS playback):
+   - State set to "speaking" when response is sent to Home Assistant
+   - Home Assistant TTS (Piper) begins playing audio
+   - Monitor TTS completion via:
+     - **Option A**: Timeout-based (estimate TTS duration)
+     - **Option B**: Home Assistant WebSocket API (monitor TTS entity state)
+   - Return to "idle" when TTS completes
+
+3. **Idle State** (ready/waiting):
+   - Default state when no processing is happening
+   - Returned to after TTS completion or on any error
 
 **Rationale:**
-- Direct knowledge of when bike4mind is actively processing
-- No dependency on Home Assistant WebSocket API
-- Simpler implementation with fewer moving parts
-- Accurate from the shim's perspective (may not match TTS playback timing exactly)
+- Direct knowledge of when bike4mind is actively processing ("thinking" phase)
+- Clear visual distinction between AI processing and speech playback
+- Simpler initial implementation using timeout-based TTS monitoring
+- Accurate from the shim's perspective
 
 **Error Handling:**
-If a request fails (timeout, rate limit, API error), the state immediately returns to "idle" to reflect that processing has stopped.
+If a request fails (timeout, rate limit, API error) at any point, the state immediately returns to "idle" to reflect that processing has stopped.
 
-**Future Enhancement:**
-A hybrid approach could be implemented in later versions to monitor actual Home Assistant TTS playback state for more accurate "speaking" detection that matches when audio is actually playing.
+**TTS Monitoring Options:**
+
+**Phase 1 Implementation (Simple)**:
+- Use fixed timeout or estimated duration based on response length
+- Set "speaking" state when response sent
+- Use `asyncio.sleep()` for estimated TTS duration
+- Return to "idle" after timeout
+
+**Phase 2 Enhancement (Advanced)**:
+- Monitor Home Assistant WebSocket API for TTS entity state
+- Track when `tts.piper` playback starts and completes
+- More accurate synchronization with actual speech
+- Requires HA WebSocket connection and authentication
 
 ## Security Considerations
 
@@ -458,17 +519,25 @@ A hybrid approach could be implemented in later versions to monitor actual Home 
 
 ## Example GIF Recommendations
 
+### Thinking GIF
+- Spinning gears or cogs
+- Loading animation
+- Pulsing brain icon
+- Processing indicator
+- Hourglass or clock animation
+
 ### Speaking GIF
 - Animated character with moving mouth
-- Pulsing or glowing effect
 - Sound wave visualization
 - Speech bubble animation
+- Pulsing or glowing effect synchronized to speech
 
 ### Idle GIF
 - Gentle breathing animation
 - Blinking eyes
 - Subtle color pulse
 - Waiting/standby pose
+- Calm, stationary character
 
 **Sources for Hosting GIFs:**
 - **Self-hosted**: Upload to Home Assistant's `/config/www/` directory, access via `http://YOUR_HA_IP:8123/local/your-gif.gif`
@@ -478,9 +547,12 @@ A hybrid approach could be implemented in later versions to monitor actual Home 
 
 **Example URLs:**
 ```
+https://YOUR_HA_IP:8123/local/thinking.gif  (self-hosted in HA)
 https://YOUR_HA_IP:8123/local/speaking.gif  (self-hosted in HA)
+https://YOUR_HA_IP:8123/local/idle.gif      (self-hosted in HA)
+
 https://i.imgur.com/abc123.gif              (Imgur)
-https://raw.githubusercontent.com/user/repo/main/speaking.gif  (GitHub)
+https://raw.githubusercontent.com/user/repo/main/thinking.gif  (GitHub)
 ```
 
 ## Dependencies
@@ -504,6 +576,7 @@ options:
 
   # New VISUAL_ASSIST options
   visual_assist_enabled: true
+  visual_assist_thinking_gif_url: "https://YOUR_HA_IP:8123/local/thinking.gif"
   visual_assist_speaking_gif_url: "https://YOUR_HA_IP:8123/local/speaking.gif"
   visual_assist_idle_gif_url: "https://YOUR_HA_IP:8123/local/idle.gif"
 ```
@@ -513,28 +586,41 @@ options:
 The VISUAL_ASSIST feature will be considered successful when:
 
 1. ✅ Users can enable/disable feature via add-on configuration
-2. ✅ Web browser displays idle GIF when assistant is ready
-3. ✅ Web browser displays speaking GIF when assistant is processing/responding
-4. ✅ State transitions occur within 500ms of actual state changes
-5. ✅ Multiple clients can view simultaneously without performance degradation
-6. ✅ Auto-reconnect works after network interruptions
-7. ✅ Documentation is clear and includes troubleshooting guide
-8. ✅ Feature does not impact existing shim functionality when disabled
+2. ✅ Web browser displays idle GIF when assistant is ready/waiting
+3. ✅ Web browser displays thinking GIF when bike4mind is processing
+4. ✅ Web browser displays speaking GIF when TTS (Piper) is playing audio
+5. ✅ State transitions occur smoothly: idle → thinking → speaking → idle
+6. ✅ Multiple clients can view simultaneously without performance degradation
+7. ✅ Auto-reconnect works after network interruptions
+8. ✅ Documentation is clear and includes troubleshooting guide
+9. ✅ Feature does not impact existing shim functionality when disabled
 
 ## Design Decisions (Resolved)
 
 1. **GIF Configuration**: ✅ Use web URLs (HTTP/HTTPS) instead of file paths
-2. **State Timing**: ✅ Simple approach - "speaking" during request, "idle" when complete (not synced to TTS)
-3. **Multiple Requests**: ✅ Not a priority for initial implementation
-4. **WebSocket**: ✅ Broadcast to all connected clients
-5. **Error Handling**: ✅ Return to "idle" on any error
-6. **Default GIFs**: ✅ Users provide their own URLs (no bundled defaults)
+2. **Three States**: ✅ Idle (ready), Thinking (bike4mind processing), Speaking (TTS playback)
+3. **State Timing**: ✅ Three-phase approach:
+   - "thinking" when request received → bike4mind processing
+   - "speaking" when response ready → TTS plays
+   - "idle" when TTS completes or on error
+4. **TTS Monitoring**: ✅ Phase 1: Timeout-based estimation; Phase 2: HA WebSocket integration
+5. **Multiple Requests**: ✅ Not a priority for initial implementation
+6. **WebSocket**: ✅ Broadcast to all connected clients
+7. **Error Handling**: ✅ Return to "idle" on any error
+8. **Default GIFs**: ✅ Users provide their own URLs (no bundled defaults)
 
 ## Open Questions
 
-1. **HA Integration**: Should this be a separate HA integration vs. add-on feature?
-2. **Customization**: Allow CSS customization via config file?
-3. **Authentication**: Should `/visual` endpoint require authentication?
+1. **TTS Duration Estimation**: How to accurately estimate TTS playback duration for timeout-based monitoring?
+   - Calculate based on response character count and average speech rate?
+   - Fixed timeout (e.g., 10 seconds)?
+   - Configurable timeout per response?
+
+2. **HA Integration**: Should this be a separate HA integration vs. add-on feature?
+
+3. **Customization**: Allow CSS customization via config file?
+
+4. **Authentication**: Should `/visual` endpoint require authentication?
 
 ## References
 
