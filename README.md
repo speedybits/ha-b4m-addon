@@ -96,12 +96,14 @@ Home Assistant Extended OpenAI Conversation
 Visual feedback feature that displays animated GIFs in a web browser based on assistant state:
 
 - **visual_assist_enabled**: Enable/disable visual feedback (default: `false`)
-- **visual_assist_speaking_gif_url**: Web URL to GIF displayed when assistant is speaking/processing
-- **visual_assist_idle_gif_url**: Web URL to GIF displayed when assistant is idle
+- **visual_assist_thinking_gif_url**: Web URL to GIF displayed when bike4mind is thinking/processing
+- **visual_assist_speaking_gif_url**: Web URL to GIF displayed when TTS (Piper) is speaking
+- **visual_assist_idle_gif_url**: Web URL to GIF displayed when assistant is idle/ready
 
 **Example**:
 ```yaml
 visual_assist_enabled: true
+visual_assist_thinking_gif_url: "https://YOUR_HA_IP:8123/local/thinking.gif"
 visual_assist_speaking_gif_url: "https://YOUR_HA_IP:8123/local/speaking.gif"
 visual_assist_idle_gif_url: "https://YOUR_HA_IP:8123/local/idle.gif"
 ```

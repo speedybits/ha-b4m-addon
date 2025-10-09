@@ -39,11 +39,12 @@ HA_TOOL_FUNCTION_NAME = os.environ.get('HA_TOOL_FUNCTION_NAME', 'homeassistant.c
 
 # VISUAL_ASSIST settings
 VISUAL_ASSIST_ENABLED = os.environ.get('VISUAL_ASSIST_ENABLED', 'false').lower() == 'true'
+VISUAL_ASSIST_THINKING_GIF_URL = os.environ.get('VISUAL_ASSIST_THINKING_GIF_URL', '')
 VISUAL_ASSIST_SPEAKING_GIF_URL = os.environ.get('VISUAL_ASSIST_SPEAKING_GIF_URL', '')
 VISUAL_ASSIST_IDLE_GIF_URL = os.environ.get('VISUAL_ASSIST_IDLE_GIF_URL', '')
 
 # Initialize FastAPI
-app = FastAPI(title="bike4mind OpenAI Shim", version="1.2.0")
+app = FastAPI(title="bike4mind OpenAI Shim", version="1.2.1")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None
@@ -353,9 +354,9 @@ async def chat_completions(request: ChatCompletionRequest):
 
     last_message = request.messages[-1].content
 
-    # Broadcast "speaking" state if VISUAL_ASSIST enabled
+    # Broadcast "thinking" state if VISUAL_ASSIST enabled (bike4mind is processing)
     if VISUAL_ASSIST_ENABLED and visual_assist_manager:
-        await visual_assist_manager.broadcast_state("speaking")
+        await visual_assist_manager.broadcast_state("thinking")
 
     try:
         # Create bike4mind quest
@@ -370,6 +371,10 @@ async def chat_completions(request: ChatCompletionRequest):
         response_text = await poll_b4m_quest(quest_id)
 
         print(f"✅ bike4mind response received ({len(response_text)} chars)")
+
+        # Broadcast "speaking" state (TTS will now play the response)
+        if VISUAL_ASSIST_ENABLED and visual_assist_manager:
+            await visual_assist_manager.broadcast_state("speaking")
 
         # Extract tool calls
         tool_calls = extract_tool_calls(response_text)
@@ -392,9 +397,19 @@ async def chat_completions(request: ChatCompletionRequest):
 
                 yield "data: [DONE]\n\n"
 
-            # Return to idle after streaming completes
+            # Estimate TTS duration (simple approach: ~150 words per minute)
+            # For now, use a fixed timeout for TTS playback
+            async def wait_for_tts():
+                # Estimate: 200 chars per minute = ~3.3 chars per second
+                # Min 2 seconds, max 30 seconds
+                estimated_duration = min(max(len(response_text) / 3.3, 2.0), 30.0)
+                await asyncio.sleep(estimated_duration)
+                if VISUAL_ASSIST_ENABLED and visual_assist_manager:
+                    await visual_assist_manager.broadcast_state("idle")
+
+            # Start TTS timeout task in background (don't await)
             if VISUAL_ASSIST_ENABLED and visual_assist_manager:
-                await visual_assist_manager.broadcast_state("idle")
+                asyncio.create_task(wait_for_tts())
 
             return StreamingResponse(generate_stream(), media_type="text/event-stream")
 
@@ -424,9 +439,18 @@ async def chat_completions(request: ChatCompletionRequest):
             if tool_calls:
                 response["choices"][0]["message"]["tool_calls"] = tool_calls
 
-            # Return to idle after response is ready
+            # Estimate TTS duration and return to idle after timeout
+            async def wait_for_tts():
+                # Estimate: 200 chars per minute = ~3.3 chars per second
+                # Min 2 seconds, max 30 seconds
+                estimated_duration = min(max(len(response_text) / 3.3, 2.0), 30.0)
+                await asyncio.sleep(estimated_duration)
+                if VISUAL_ASSIST_ENABLED and visual_assist_manager:
+                    await visual_assist_manager.broadcast_state("idle")
+
+            # Start TTS timeout task in background (don't await)
             if VISUAL_ASSIST_ENABLED and visual_assist_manager:
-                await visual_assist_manager.broadcast_state("idle")
+                asyncio.create_task(wait_for_tts())
 
             return JSONResponse(response)
 
@@ -498,6 +522,7 @@ if VISUAL_ASSIST_ENABLED:
     </div>
     <script>
         // Embed GIF URLs from server configuration
+        const THINKING_GIF_URL = "{VISUAL_ASSIST_THINKING_GIF_URL}";
         const SPEAKING_GIF_URL = "{VISUAL_ASSIST_SPEAKING_GIF_URL}";
         const IDLE_GIF_URL = "{VISUAL_ASSIST_IDLE_GIF_URL}";
 
@@ -543,7 +568,15 @@ if VISUAL_ASSIST_ENABLED:
             }}
 
             updateGif(state) {{
-                const gifSrc = state === 'speaking' ? SPEAKING_GIF_URL : IDLE_GIF_URL;
+                let gifSrc;
+                if (state === 'thinking') {{
+                    gifSrc = THINKING_GIF_URL;
+                }} else if (state === 'speaking') {{
+                    gifSrc = SPEAKING_GIF_URL;
+                }} else {{
+                    gifSrc = IDLE_GIF_URL;
+                }}
+
                 if (this.gifElement.src !== gifSrc) {{
                     this.gifElement.src = gifSrc + '?t=' + Date.now(); // Cache bust
                 }}
@@ -580,6 +613,7 @@ if VISUAL_ASSIST_ENABLED:
         return {{
             "state": visual_assist_manager.current_state,
             "visual_assist_enabled": True,
+            "thinking_gif_url": VISUAL_ASSIST_THINKING_GIF_URL,
             "speaking_gif_url": VISUAL_ASSIST_SPEAKING_GIF_URL,
             "idle_gif_url": VISUAL_ASSIST_IDLE_GIF_URL
         }}

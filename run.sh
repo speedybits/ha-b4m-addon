@@ -17,15 +17,17 @@ export HA_TOOL_FUNCTION_NAME=$(bashio::config 'ha_tool_function_name')
 # Export VISUAL_ASSIST configuration
 if bashio::config.true 'visual_assist_enabled'; then
     export VISUAL_ASSIST_ENABLED=true
+    export VISUAL_ASSIST_THINKING_GIF_URL=$(bashio::config 'visual_assist_thinking_gif_url')
     export VISUAL_ASSIST_SPEAKING_GIF_URL=$(bashio::config 'visual_assist_speaking_gif_url')
     export VISUAL_ASSIST_IDLE_GIF_URL=$(bashio::config 'visual_assist_idle_gif_url')
 
     # Validate URLs are non-empty
-    if [ -z "$VISUAL_ASSIST_SPEAKING_GIF_URL" ] || [ -z "$VISUAL_ASSIST_IDLE_GIF_URL" ]; then
+    if [ -z "$VISUAL_ASSIST_THINKING_GIF_URL" ] || [ -z "$VISUAL_ASSIST_SPEAKING_GIF_URL" ] || [ -z "$VISUAL_ASSIST_IDLE_GIF_URL" ]; then
         bashio::log.fatal "visual_assist_enabled is true but GIF URLs are not configured"
         exit 1
     fi
 
+    bashio::log.info "VISUAL_ASSIST enabled - thinking: ${VISUAL_ASSIST_THINKING_GIF_URL}"
     bashio::log.info "VISUAL_ASSIST enabled - speaking: ${VISUAL_ASSIST_SPEAKING_GIF_URL}"
     bashio::log.info "VISUAL_ASSIST enabled - idle: ${VISUAL_ASSIST_IDLE_GIF_URL}"
 else

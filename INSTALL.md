@@ -671,9 +671,10 @@ VISUAL_ASSIST provides visual feedback by displaying animated GIFs in a web brow
 
 ### Step 13A: Prepare GIF Files
 
-You need two animated GIF files:
-1. **Speaking GIF**: Shown when assistant is processing (e.g., animated mouth, pulsing effect, sound waves)
-2. **Idle GIF**: Shown when assistant is ready/waiting (e.g., gentle breathing, blinking, subtle pulse)
+You need three animated GIF files:
+1. **Thinking GIF**: Shown when bike4mind is processing the request (e.g., spinning gears, loading animation, pulsing brain)
+2. **Speaking GIF**: Shown when TTS (Piper) is playing audio (e.g., animated mouth, sound waves, speech bubbles)
+3. **Idle GIF**: Shown when assistant is ready/waiting (e.g., gentle breathing, blinking, subtle pulse)
 
 **Hosting Options**:
 
@@ -682,6 +683,7 @@ You need two animated GIF files:
    - Access via: `http://YOUR_HA_IP:8123/local/filename.gif`
    - Example:
      ```
+     /config/www/thinking.gif → http://192.168.1.100:8123/local/thinking.gif
      /config/www/speaking.gif → http://192.168.1.100:8123/local/speaking.gif
      /config/www/idle.gif → http://192.168.1.100:8123/local/idle.gif
      ```
@@ -703,13 +705,14 @@ You need two animated GIF files:
 
 ```yaml
 visual_assist_enabled: true
+visual_assist_thinking_gif_url: "http://YOUR_HA_IP:8123/local/thinking.gif"
 visual_assist_speaking_gif_url: "http://YOUR_HA_IP:8123/local/speaking.gif"
 visual_assist_idle_gif_url: "http://YOUR_HA_IP:8123/local/idle.gif"
 ```
 
 3. Click **Save**
 4. Go to **Info** tab → Click **Restart**
-5. Check **Log** tab for: `VISUAL_ASSIST enabled - speaking: ...`
+5. Check **Log** tab for: `VISUAL_ASSIST enabled - thinking: ...`
 
 ### Step 13C: Access Visual Viewer
 
@@ -725,10 +728,11 @@ visual_assist_idle_gif_url: "http://YOUR_HA_IP:8123/local/idle.gif"
 
 1. Keep the visual viewer open in your browser
 2. Ask a question to bike4mind (via voice or Assist chat)
-3. Watch the GIF change:
-   - **Before request**: Idle GIF
-   - **During processing**: Speaking GIF (5-30 seconds)
-   - **After response**: Returns to Idle GIF
+3. Watch the GIF change through three states:
+   - **Before request**: Idle GIF (ready/waiting)
+   - **During bike4mind processing**: Thinking GIF (quest creation and polling, 5-30 seconds)
+   - **During TTS playback**: Speaking GIF (Piper speaking, 2-30 seconds estimated)
+   - **After TTS complete**: Returns to Idle GIF
 
 **Use Cases**:
 - Wall-mounted tablet next to voice assistant

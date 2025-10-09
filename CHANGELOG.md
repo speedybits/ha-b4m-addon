@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2025-10-09
+
+### Added
+- Third visual state: "thinking" GIF displayed during bike4mind processing
+- `visual_assist_thinking_gif_url` configuration parameter
+- TTS duration estimation for automatic transition from speaking to idle
+- Background task to return to idle state after estimated TTS playback
+
+### Changed
+- VISUAL_ASSIST now has three states: idle → thinking → speaking → idle
+- State transitions:
+  - "thinking" when request received and bike4mind is processing
+  - "speaking" when response ready and TTS (Piper) is playing
+  - "idle" when TTS completes or on error
+- Updated WebSocket protocol to include "thinking" state
+- Updated `/visual/status` endpoint to return thinking_gif_url
+
+### Technical
+- TTS duration estimated at ~3.3 characters per second (min 2s, max 30s)
+- Background asyncio task handles automatic state transition to idle
+
 ## [1.2.0] - 2025-10-09
 
 ### Added
