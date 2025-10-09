@@ -44,7 +44,7 @@ VISUAL_ASSIST_SPEAKING_GIF_URL = os.environ.get('VISUAL_ASSIST_SPEAKING_GIF_URL'
 VISUAL_ASSIST_IDLE_GIF_URL = os.environ.get('VISUAL_ASSIST_IDLE_GIF_URL', '')
 
 # Initialize FastAPI
-app = FastAPI(title="bike4mind OpenAI Shim", version="1.2.1")
+app = FastAPI(title="bike4mind OpenAI Shim", version="1.2.2")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None
@@ -397,12 +397,12 @@ async def chat_completions(request: ChatCompletionRequest):
 
                 yield "data: [DONE]\n\n"
 
-            # Estimate TTS duration (simple approach: ~150 words per minute)
+            # Estimate TTS duration based on measured Piper speech rate
             # For now, use a fixed timeout for TTS playback
             async def wait_for_tts():
-                # Estimate: 200 chars per minute = ~3.3 chars per second
-                # Min 2 seconds, max 30 seconds
-                estimated_duration = min(max(len(response_text) / 3.3, 2.0), 30.0)
+                # Estimate: ~16 chars per second (measured from actual Piper TTS)
+                # Min 1 second, max 30 seconds
+                estimated_duration = min(max(len(response_text) / 16, 1.0), 30.0)
                 await asyncio.sleep(estimated_duration)
                 if VISUAL_ASSIST_ENABLED and visual_assist_manager:
                     await visual_assist_manager.broadcast_state("idle")
@@ -441,9 +441,9 @@ async def chat_completions(request: ChatCompletionRequest):
 
             # Estimate TTS duration and return to idle after timeout
             async def wait_for_tts():
-                # Estimate: 200 chars per minute = ~3.3 chars per second
-                # Min 2 seconds, max 30 seconds
-                estimated_duration = min(max(len(response_text) / 3.3, 2.0), 30.0)
+                # Estimate: ~16 chars per second (measured from actual Piper TTS)
+                # Min 1 second, max 30 seconds
+                estimated_duration = min(max(len(response_text) / 16, 1.0), 30.0)
                 await asyncio.sleep(estimated_duration)
                 if VISUAL_ASSIST_ENABLED and visual_assist_manager:
                     await visual_assist_manager.broadcast_state("idle")

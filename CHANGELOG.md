@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.2] - 2025-10-09
+
+### Fixed
+- TTS duration estimation now matches actual Piper speech rate
+- Changed TTS estimation from 3.3 to 16 characters per second (4.8x faster)
+- Reduced minimum speaking duration from 2 seconds to 1 second
+- "Speaking" GIF now transitions to "Idle" when Piper actually finishes speaking
+
+### Technical
+- Based on measured Piper TTS rate: 113 chars in 7 seconds = ~16 chars/sec
+- Previous rate (3.3 chars/sec) caused speaking GIF to remain 22+ seconds too long
+
 ## [1.2.1] - 2025-10-09
 
 ### Added
