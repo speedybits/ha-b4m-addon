@@ -91,6 +91,25 @@ Home Assistant Extended OpenAI Conversation
 - **b4m_base**: bike4mind API base URL (default: `https://app.bike4mind.com/api`)
 - **ha_tool_function_name**: Home Assistant tool function name (default: `homeassistant.call_service`)
 
+### VISUAL_ASSIST Settings (Optional)
+
+Visual feedback feature that displays animated GIFs in a web browser based on assistant state:
+
+- **visual_assist_enabled**: Enable/disable visual feedback (default: `false`)
+- **visual_assist_speaking_gif_url**: Web URL to GIF displayed when assistant is speaking/processing
+- **visual_assist_idle_gif_url**: Web URL to GIF displayed when assistant is idle
+
+**Example**:
+```yaml
+visual_assist_enabled: true
+visual_assist_speaking_gif_url: "https://YOUR_HA_IP:8123/local/speaking.gif"
+visual_assist_idle_gif_url: "https://YOUR_HA_IP:8123/local/idle.gif"
+```
+
+**Access visual viewer**: `http://YOUR_HA_IP:3000/visual`
+
+For GIF hosting options and setup guide, see [VISUAL_ASSIST.md](VISUAL_ASSIST.md)
+
 ## Home Assistant Integration
 
 ### Step 2: Configure Extended OpenAI Conversation

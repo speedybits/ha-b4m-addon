@@ -665,11 +665,89 @@ If your HA version uses different tool function name:
 ha_tool_function_name: "execute_action"
 ```
 
+## Optional: Enable VISUAL_ASSIST
+
+VISUAL_ASSIST provides visual feedback by displaying animated GIFs in a web browser based on the assistant's state (speaking/idle).
+
+### Step 13A: Prepare GIF Files
+
+You need two animated GIF files:
+1. **Speaking GIF**: Shown when assistant is processing (e.g., animated mouth, pulsing effect, sound waves)
+2. **Idle GIF**: Shown when assistant is ready/waiting (e.g., gentle breathing, blinking, subtle pulse)
+
+**Hosting Options**:
+
+1. **Self-hosted in Home Assistant** (recommended):
+   - Upload GIFs to `/config/www/` directory
+   - Access via: `http://YOUR_HA_IP:8123/local/filename.gif`
+   - Example:
+     ```
+     /config/www/speaking.gif → http://192.168.1.100:8123/local/speaking.gif
+     /config/www/idle.gif → http://192.168.1.100:8123/local/idle.gif
+     ```
+
+2. **Cloud hosting**:
+   - Upload to Imgur, GitHub, or similar service
+   - Get public sharing URL
+   - Example: `https://i.imgur.com/abc123.gif`
+
+**GIF Recommendations**:
+- Keep file size under 5MB for smooth loading
+- Use simple, clear animations
+- Consider accessibility (high contrast, clear visual changes)
+
+### Step 13B: Configure VISUAL_ASSIST
+
+1. Go to bike4mind OpenAI Shim add-on **Configuration** tab
+2. Enable and configure VISUAL_ASSIST:
+
+```yaml
+visual_assist_enabled: true
+visual_assist_speaking_gif_url: "http://YOUR_HA_IP:8123/local/speaking.gif"
+visual_assist_idle_gif_url: "http://YOUR_HA_IP:8123/local/idle.gif"
+```
+
+3. Click **Save**
+4. Go to **Info** tab → Click **Restart**
+5. Check **Log** tab for: `VISUAL_ASSIST enabled - speaking: ...`
+
+### Step 13C: Access Visual Viewer
+
+1. Open a web browser on any device on your local network
+2. Navigate to: `http://YOUR_HA_IP:3000/visual`
+   - Replace `YOUR_HA_IP` with your Home Assistant IP
+   - Example: `http://192.168.1.100:3000/visual`
+3. You should see:
+   - Your idle GIF displayed
+   - Connection status in top-right corner showing "Connected"
+
+### Step 13D: Test VISUAL_ASSIST
+
+1. Keep the visual viewer open in your browser
+2. Ask a question to bike4mind (via voice or Assist chat)
+3. Watch the GIF change:
+   - **Before request**: Idle GIF
+   - **During processing**: Speaking GIF (5-30 seconds)
+   - **After response**: Returns to Idle GIF
+
+**Use Cases**:
+- Wall-mounted tablet next to voice assistant
+- Desktop companion during conversations
+- Visual indicator for hearing-impaired users
+- Smart home dashboard integration
+
+**Multiple Viewers**:
+- Open `http://YOUR_HA_IP:3000/visual` on multiple devices simultaneously
+- All viewers will stay synchronized with assistant state
+
+For detailed VISUAL_ASSIST documentation, see [VISUAL_ASSIST.md](VISUAL_ASSIST.md)
+
 ## Next Steps
 
 - Experiment with different prompts to bike4mind
 - Create custom automations triggered by bike4mind responses
 - Monitor add-on logs to tune performance settings
+- Try VISUAL_ASSIST feature for visual feedback (Step 13)
 - Consider contributing improvements to the project
 
 ## Support
