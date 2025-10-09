@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2025-10-09
+
+### Added
+- VISUAL_ASSIST feature: Optional visual feedback via web browser
+- Display animated GIFs based on assistant state (speaking/idle)
+- WebSocket endpoint `/ws` for real-time state broadcasting
+- Web viewer at `/visual` endpoint showing GIF animations
+- Status endpoint `/visual/status` for current state and configuration
+- Configuration options: `visual_assist_enabled`, `visual_assist_speaking_gif_url`, `visual_assist_idle_gif_url`
+- Real-time state updates to all connected browser clients
+- Auto-reconnect support for browser disconnections
+
+### Changed
+- Version bumped to 1.2.0
+- Enhanced chat completions endpoint with state broadcasting
+- Improved error handling returns to idle state
+
 ## [1.1.1] - 2025-10-07
 
 ### Changed

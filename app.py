@@ -9,12 +9,12 @@ import time
 import json
 import re
 import uuid
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, Set
 from datetime import datetime, timedelta
 
 import httpx
-from fastapi import FastAPI, HTTPException, Request, Depends
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, Request, Depends, WebSocket, WebSocketDisconnect
+from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
 from pydantic import BaseModel
 
 # Configuration from environment variables
@@ -37,14 +37,57 @@ POLL_MAX_INTERVAL_MS = int(os.environ.get('POLL_MAX_INTERVAL_MS', '5000'))  # 5 
 # Integration settings
 HA_TOOL_FUNCTION_NAME = os.environ.get('HA_TOOL_FUNCTION_NAME', 'homeassistant.call_service')
 
+# VISUAL_ASSIST settings
+VISUAL_ASSIST_ENABLED = os.environ.get('VISUAL_ASSIST_ENABLED', 'false').lower() == 'true'
+VISUAL_ASSIST_SPEAKING_GIF_URL = os.environ.get('VISUAL_ASSIST_SPEAKING_GIF_URL', '')
+VISUAL_ASSIST_IDLE_GIF_URL = os.environ.get('VISUAL_ASSIST_IDLE_GIF_URL', '')
+
 # Initialize FastAPI
-app = FastAPI(title="bike4mind OpenAI Shim", version="1.0.0")
+app = FastAPI(title="bike4mind OpenAI Shim", version="1.2.0")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None
 
 # Session tracking (internal shim sessions)
 shim_sessions: Dict[str, Dict[str, Any]] = {}
+
+# VISUAL_ASSIST WebSocket connection manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Set[WebSocket] = set()
+        self.current_state: str = "idle"
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.add(websocket)
+        # Send current state to newly connected client
+        await websocket.send_json({
+            "type": "state_change",
+            "state": self.current_state,
+            "timestamp": int(time.time())
+        })
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.discard(websocket)
+
+    async def broadcast_state(self, state: str):
+        self.current_state = state
+        message = {
+            "type": "state_change",
+            "state": state,
+            "timestamp": int(time.time())
+        }
+        # Send to all connected clients
+        disconnected = set()
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except:
+                disconnected.add(connection)
+        # Remove disconnected clients
+        self.active_connections -= disconnected
+
+visual_assist_manager = ConnectionManager() if VISUAL_ASSIST_ENABLED else None
 
 
 # Pydantic models
@@ -310,69 +353,88 @@ async def chat_completions(request: ChatCompletionRequest):
 
     last_message = request.messages[-1].content
 
-    # Create bike4mind quest
-    print(f"🤖 Creating bike4mind quest: {last_message[:50]}...")
-    quest_id = await create_b4m_quest(last_message)
+    # Broadcast "speaking" state if VISUAL_ASSIST enabled
+    if VISUAL_ASSIST_ENABLED and visual_assist_manager:
+        await visual_assist_manager.broadcast_state("speaking")
 
-    if not quest_id:
-        raise HTTPException(status_code=502, detail="Failed to create bike4mind quest")
+    try:
+        # Create bike4mind quest
+        print(f"🤖 Creating bike4mind quest: {last_message[:50]}...")
+        quest_id = await create_b4m_quest(last_message)
 
-    # Poll for response
-    print(f"⏳ Polling quest {quest_id}...")
-    response_text = await poll_b4m_quest(quest_id)
+        if not quest_id:
+            raise HTTPException(status_code=502, detail="Failed to create bike4mind quest")
 
-    print(f"✅ bike4mind response received ({len(response_text)} chars)")
+        # Poll for response
+        print(f"⏳ Polling quest {quest_id}...")
+        response_text = await poll_b4m_quest(quest_id)
 
-    # Extract tool calls
-    tool_calls = extract_tool_calls(response_text)
+        print(f"✅ bike4mind response received ({len(response_text)} chars)")
 
-    # Build OpenAI response
-    completion_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
+        # Extract tool calls
+        tool_calls = extract_tool_calls(response_text)
 
-    if request.stream:
-        # Streaming response
-        async def generate_stream():
-            # Send content chunks
-            if response_text:
-                yield f"data: {json.dumps({'id': completion_id, 'object': 'chat.completion.chunk', 'created': int(time.time()), 'model': 'bike4mind', 'choices': [{'index': 0, 'delta': {'role': 'assistant', 'content': response_text}, 'finish_reason': None}]})}\n\n"
+        # Build OpenAI response
+        completion_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
 
-            # Send tool_calls in final chunk if present
-            if tool_calls:
-                yield f"data: {json.dumps({'id': completion_id, 'object': 'chat.completion.chunk', 'created': int(time.time()), 'model': 'bike4mind', 'choices': [{'index': 0, 'delta': {'tool_calls': tool_calls}, 'finish_reason': 'tool_calls'}]})}\n\n"
-            else:
-                yield f"data: {json.dumps({'id': completion_id, 'object': 'chat.completion.chunk', 'created': int(time.time()), 'model': 'bike4mind', 'choices': [{'index': 0, 'delta': {}, 'finish_reason': 'stop'}]})}\n\n"
+        if request.stream:
+            # Streaming response
+            async def generate_stream():
+                # Send content chunks
+                if response_text:
+                    yield f"data: {json.dumps({'id': completion_id, 'object': 'chat.completion.chunk', 'created': int(time.time()), 'model': 'bike4mind', 'choices': [{'index': 0, 'delta': {'role': 'assistant', 'content': response_text}, 'finish_reason': None}]})}\n\n"
 
-            yield "data: [DONE]\n\n"
+                # Send tool_calls in final chunk if present
+                if tool_calls:
+                    yield f"data: {json.dumps({'id': completion_id, 'object': 'chat.completion.chunk', 'created': int(time.time()), 'model': 'bike4mind', 'choices': [{'index': 0, 'delta': {'tool_calls': tool_calls}, 'finish_reason': 'tool_calls'}]})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'id': completion_id, 'object': 'chat.completion.chunk', 'created': int(time.time()), 'model': 'bike4mind', 'choices': [{'index': 0, 'delta': {}, 'finish_reason': 'stop'}]})}\n\n"
 
-        return StreamingResponse(generate_stream(), media_type="text/event-stream")
+                yield "data: [DONE]\n\n"
 
-    else:
-        # Non-streaming response
-        response = {
-            "id": completion_id,
-            "object": "chat.completion",
-            "created": int(time.time()),
-            "model": "bike4mind",
-            "choices": [{
-                "index": 0,
-                "message": {
-                    "role": "assistant",
-                    "content": response_text
-                },
-                "finish_reason": "tool_calls" if tool_calls else "stop"
-            }],
-            "usage": {
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "total_tokens": 0
+            # Return to idle after streaming completes
+            if VISUAL_ASSIST_ENABLED and visual_assist_manager:
+                await visual_assist_manager.broadcast_state("idle")
+
+            return StreamingResponse(generate_stream(), media_type="text/event-stream")
+
+        else:
+            # Non-streaming response
+            response = {
+                "id": completion_id,
+                "object": "chat.completion",
+                "created": int(time.time()),
+                "model": "bike4mind",
+                "choices": [{
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": response_text
+                    },
+                    "finish_reason": "tool_calls" if tool_calls else "stop"
+                }],
+                "usage": {
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "total_tokens": 0
+                }
             }
-        }
 
-        # Add tool_calls if present
-        if tool_calls:
-            response["choices"][0]["message"]["tool_calls"] = tool_calls
+            # Add tool_calls if present
+            if tool_calls:
+                response["choices"][0]["message"]["tool_calls"] = tool_calls
 
-        return JSONResponse(response)
+            # Return to idle after response is ready
+            if VISUAL_ASSIST_ENABLED and visual_assist_manager:
+                await visual_assist_manager.broadcast_state("idle")
+
+            return JSONResponse(response)
+
+    except Exception as e:
+        # Return to idle on any error
+        if VISUAL_ASSIST_ENABLED and visual_assist_manager:
+            await visual_assist_manager.broadcast_state("idle")
+        raise
 
 
 @app.post("/admin/reset_session", dependencies=[Depends(verify_shim_auth)])
@@ -390,6 +452,137 @@ async def reset_session(request: Request):
 
 # Missing import
 import asyncio
+
+
+# VISUAL_ASSIST endpoints (conditionally registered)
+if VISUAL_ASSIST_ENABLED:
+    @app.get("/visual", response_class=HTMLResponse)
+    async def visual_page():
+        """Serve HTML viewer page with embedded GIF URLs"""
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Voice Assistant Visual</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {{
+            margin: 0;
+            padding: 0;
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }}
+        #assistant-gif {{
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }}
+        .status {{
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-family: monospace;
+            font-size: 12px;
+        }}
+    </style>
+</head>
+<body>
+    <img id="assistant-gif" src="{VISUAL_ASSIST_IDLE_GIF_URL}" alt="Assistant">
+    <div class="status">
+        <span id="connection-status">Connecting...</span>
+    </div>
+    <script>
+        // Embed GIF URLs from server configuration
+        const SPEAKING_GIF_URL = "{VISUAL_ASSIST_SPEAKING_GIF_URL}";
+        const IDLE_GIF_URL = "{VISUAL_ASSIST_IDLE_GIF_URL}";
+
+        // WebSocket client
+        class VisualAssistClient {{
+            constructor() {{
+                this.ws = null;
+                this.reconnectInterval = 2000;
+                this.gifElement = document.getElementById('assistant-gif');
+                this.statusElement = document.getElementById('connection-status');
+                this.connect();
+            }}
+
+            connect() {{
+                const wsUrl = `ws://${{window.location.host}}/ws`;
+                this.ws = new WebSocket(wsUrl);
+
+                this.ws.onopen = () => {{
+                    console.log('Connected to Visual Assist');
+                    this.statusElement.textContent = 'Connected';
+                    this.statusElement.style.color = 'lime';
+                }};
+
+                this.ws.onmessage = (event) => {{
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'state_change') {{
+                        this.updateGif(data.state);
+                    }}
+                }};
+
+                this.ws.onerror = (error) => {{
+                    console.error('WebSocket error:', error);
+                    this.statusElement.textContent = 'Error';
+                    this.statusElement.style.color = 'red';
+                }};
+
+                this.ws.onclose = () => {{
+                    console.log('Disconnected, reconnecting...');
+                    this.statusElement.textContent = 'Reconnecting...';
+                    this.statusElement.style.color = 'yellow';
+                    setTimeout(() => this.connect(), this.reconnectInterval);
+                }};
+            }}
+
+            updateGif(state) {{
+                const gifSrc = state === 'speaking' ? SPEAKING_GIF_URL : IDLE_GIF_URL;
+                if (this.gifElement.src !== gifSrc) {{
+                    this.gifElement.src = gifSrc + '?t=' + Date.now(); // Cache bust
+                }}
+            }}
+        }}
+
+        // Initialize client
+        const client = new VisualAssistClient();
+    </script>
+</body>
+</html>
+        """
+        return HTMLResponse(content=html_content)
+
+    @app.websocket("/ws")
+    async def websocket_endpoint(websocket: WebSocket):
+        """WebSocket endpoint for real-time state updates"""
+        await visual_assist_manager.connect(websocket)
+        try:
+            while True:
+                # Keep connection alive and handle pings
+                data = await websocket.receive_json()
+                if data.get("type") == "ping":
+                    await websocket.send_json({{
+                        "type": "pong",
+                        "state": visual_assist_manager.current_state
+                    }})
+        except WebSocketDisconnect:
+            visual_assist_manager.disconnect(websocket)
+
+    @app.get("/visual/status")
+    async def visual_status():
+        """Return current assistant state and configuration"""
+        return {{
+            "state": visual_assist_manager.current_state,
+            "visual_assist_enabled": True,
+            "speaking_gif_url": VISUAL_ASSIST_SPEAKING_GIF_URL,
+            "idle_gif_url": VISUAL_ASSIST_IDLE_GIF_URL
+        }}
 
 
 if __name__ == "__main__":

@@ -14,6 +14,24 @@ export POLL_MAX_INTERVAL_MS=$(bashio::config 'poll_max_interval_ms')
 export B4M_BASE=$(bashio::config 'b4m_base')
 export HA_TOOL_FUNCTION_NAME=$(bashio::config 'ha_tool_function_name')
 
+# Export VISUAL_ASSIST configuration
+if bashio::config.true 'visual_assist_enabled'; then
+    export VISUAL_ASSIST_ENABLED=true
+    export VISUAL_ASSIST_SPEAKING_GIF_URL=$(bashio::config 'visual_assist_speaking_gif_url')
+    export VISUAL_ASSIST_IDLE_GIF_URL=$(bashio::config 'visual_assist_idle_gif_url')
+
+    # Validate URLs are non-empty
+    if [ -z "$VISUAL_ASSIST_SPEAKING_GIF_URL" ] || [ -z "$VISUAL_ASSIST_IDLE_GIF_URL" ]; then
+        bashio::log.fatal "visual_assist_enabled is true but GIF URLs are not configured"
+        exit 1
+    fi
+
+    bashio::log.info "VISUAL_ASSIST enabled - speaking: ${VISUAL_ASSIST_SPEAKING_GIF_URL}"
+    bashio::log.info "VISUAL_ASSIST enabled - idle: ${VISUAL_ASSIST_IDLE_GIF_URL}"
+else
+    export VISUAL_ASSIST_ENABLED=false
+fi
+
 # Validate required configuration
 if [ -z "$B4M_API_KEY" ]; then
     bashio::log.fatal "b4m_api_key is required"

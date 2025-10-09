@@ -1,6 +1,6 @@
 name: "bike4mind OpenAI Shim"
 description: "OpenAI-compatible API shim for bike4mind integration with Home Assistant"
-version: "1.1.1"
+version: "1.2.0"
 slug: "b4m_shim"
 init: false
 arch:
@@ -22,6 +22,9 @@ options:
   poll_max_interval_ms: 5000
   b4m_base: "https://app.bike4mind.com/api"
   ha_tool_function_name: "homeassistant.call_service"
+  visual_assist_enabled: false
+  visual_assist_speaking_gif_url: ""
+  visual_assist_idle_gif_url: ""
 schema:
   b4m_api_key: str
   ha_b4m_session_id: str
@@ -35,3 +38,6 @@ schema:
   poll_max_interval_ms: int(1000,30000)?
   b4m_base: url?
   ha_tool_function_name: str?
+  visual_assist_enabled: bool?
+  visual_assist_speaking_gif_url: str?
+  visual_assist_idle_gif_url: str?
