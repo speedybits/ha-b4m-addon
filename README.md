@@ -176,116 +176,29 @@ After installing the add-on and Extended OpenAI Conversation:
      - Is your IP address correct in Base Url?
      - Does your shim_api_key match in both places?
 
-6. **Set up conversation routing** (see Conversation Routing section below)
+6. **Create bike4mind assistant**:
+   - Go to **Settings → Voice Assistants → Assistants**
+   - Click **Add Assistant**
+   - **Name**: `bike4mind` (or your preferred name)
+   - **Conversation Agent**: Select `bike4mind`
+   - **Language**: Your preferred language
+   - Click **Create**
+   - **Keep your default assistant set to Home Assistant** (for normal use)
+   - Manually switch to bike4mind assistant when you want to use it
 
-## Conversation Routing
+## Testing
 
-To enable the hybrid assist model (fast local commands + bike4mind conversations):
+Test the integration using Home Assistant's Assist interface:
 
-### Custom Sentences
+1. **Go to Settings → Voice Assistants → Assist**
+2. **Switch to bike4mind**: Click the assistant dropdown and select `bike4mind`
+3. **Ask questions or give commands**:
+   - "What should I cook for dinner?" → Conversational AI response
+   - "Turn on the kitchen light" → Device control via tool-calling
+   - "Set living room to 50% brightness" → Multi-parameter device control
+4. **Response time**: Expect 5-30 seconds for all queries (bike4mind processing)
 
-Create `/config/custom_sentences/en/bike4mind.yaml`:
-
-```yaml
-language: "en"
-intents:
-  ActivateBike4mind:
-    data:
-      - sentences:
-          - "hey rosie"
-          - "hi rosie"
-          - "talk to rosie"
-          - "let's chat"
-          - "let's have a conversation"
-          - "conversation mode"
-
-  DeactivateBike4mind:
-    data:
-      - sentences:
-          - "that's all"
-          - "thanks rosie"
-          - "thank you rosie"
-          - "stop conversation"
-          - "end conversation"
-          - "return to normal mode"
-          - "basic mode"
-
-responses:
-  intents:
-    ActivateBike4mind: "bike4mind activated"
-    DeactivateBike4mind: "Returning to basic mode"
-```
-
-After creating this file, restart Home Assistant to load the custom sentences.
-
-### Helper Entity
-
-Create an input_boolean helper:
-
-- **Settings → Devices & Services → Helpers → Create Helper → Toggle**
-- Name: "bike4mind Conversation Mode"
-- Entity ID: `input_boolean.bike4mind_conversation_mode`
-
-### Intent Scripts
-
-Add to your `configuration.yaml`:
-
-```yaml
-intent_script:
-  ActivateBike4mind:
-    speech:
-      text: "bike4mind activated"
-    action:
-      - service: input_boolean.turn_on
-        target:
-          entity_id: input_boolean.bike4mind_conversation_mode
-      - service: select.select_option
-        data:
-          option: "B4M_Bot"  # Replace with your bike4mind assistant name
-        target:
-          entity_id: select.YOUR_VOICE_SATELLITE_assistant  # Replace with your entity
-
-  DeactivateBike4mind:
-    speech:
-      text: "Returning to basic mode"
-    action:
-      - service: input_boolean.turn_off
-        target:
-          entity_id: input_boolean.bike4mind_conversation_mode
-      - service: select.select_option
-        data:
-          option: "Jarvis"  # Replace with your default assistant name
-        target:
-          entity_id: select.YOUR_VOICE_SATELLITE_assistant  # Replace with your entity
-```
-
-**Finding your voice satellite entity:**
-- Go to **Developer Tools → States**
-- Search for: `assist` or your device name
-- Look for: `select.DEVICE_NAME_assistant`
-- Example: `select.home_assistant_voice_09e3cd_assistant`
-
-After adding this, restart Home Assistant.
-
-### Optional: Routing Automation
-
-For automatic routing based on the helper state, create this automation:
-
-```yaml
-alias: Route Conversation to bike4mind
-trigger:
-  - platform: state
-    entity_id: input_boolean.bike4mind_conversation_mode
-    to: "on"
-condition: []
-action:
-  - service: conversation.process
-    data:
-      agent_id: conversation.bike4mind  # Your Extended OpenAI Conversation entity
-      text: "{{ trigger.to_state.attributes.text }}"
-```
-
-**Note**: This automation is for advanced voice routing. For basic testing with Assist chat, manually switch the conversation agent dropdown.
+**Note**: bike4mind handles both conversation AND device control, so no mode switching is needed.
 
 ## API Endpoints
 
