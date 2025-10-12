@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.6] - 2025-10-12
+
+### Added
+- New configuration option: `extrovert_tts_entity_id` (default: `tts.piper`)
+- Allows users to specify which TTS engine to use for EXTROVERT
+
+### Fixed
+- Made TTS engine configurable instead of hardcoded to `tts.piper`
+- Now supports any TTS engine (Piper, Google Translate, Amazon Polly, etc.)
+
+### Changed
+- Added TTS entity logging to startup output
+
 ## [1.3.5] - 2025-10-12
 
 ### Fixed

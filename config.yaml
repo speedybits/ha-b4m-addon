@@ -1,6 +1,6 @@
 name: "bike4mind OpenAI Shim"
 description: "OpenAI-compatible API shim for bike4mind integration with Home Assistant"
-version: "1.3.5"
+version: "1.3.6"
 slug: "b4m_shim"
 init: false
 arch:
@@ -29,6 +29,7 @@ options:
   visual_assist_idle_gif_url: ""
   extrovert_enabled: false
   extrovert_rate_limit: 10
+  extrovert_tts_entity_id: "tts.piper"
   extrovert_tts_voice: ""
 schema:
   b4m_api_key: str
@@ -49,4 +50,5 @@ schema:
   visual_assist_idle_gif_url: str?
   extrovert_enabled: bool?
   extrovert_rate_limit: int(1,100)?
+  extrovert_tts_entity_id: str?
   extrovert_tts_voice: str?

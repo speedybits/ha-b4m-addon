@@ -48,10 +48,11 @@ EXTROVERT_ENABLED = os.environ.get('EXTROVERT_ENABLED', 'false').lower() == 'tru
 EXTROVERT_HA_URL = os.environ.get('EXTROVERT_HA_URL', 'http://supervisor/core/api')
 EXTROVERT_HA_TOKEN = os.environ.get('EXTROVERT_HA_TOKEN', os.environ.get('SUPERVISOR_TOKEN', ''))
 EXTROVERT_RATE_LIMIT = int(os.environ.get('EXTROVERT_RATE_LIMIT', '10'))
+EXTROVERT_TTS_ENTITY_ID = os.environ.get('EXTROVERT_TTS_ENTITY_ID', 'tts.piper')
 EXTROVERT_TTS_VOICE = os.environ.get('EXTROVERT_TTS_VOICE', '')
 
 # Initialize FastAPI
-app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.5")
+app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.6")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None
@@ -551,7 +552,7 @@ if EXTROVERT_ENABLED:
             service_data = {
                 "message": text,
                 "cache": False,
-                "entity_id": "tts.piper"  # Default to Piper TTS
+                "entity_id": EXTROVERT_TTS_ENTITY_ID
             }
 
             # media_player_entity_id specifies where to play the audio

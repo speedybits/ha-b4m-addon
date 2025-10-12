@@ -40,9 +40,11 @@ if bashio::config.true 'extrovert_enabled'; then
     export EXTROVERT_HA_URL="http://supervisor/core/api"
     export EXTROVERT_HA_TOKEN="${SUPERVISOR_TOKEN}"
     export EXTROVERT_RATE_LIMIT=$(bashio::config 'extrovert_rate_limit')
+    export EXTROVERT_TTS_ENTITY_ID=$(bashio::config 'extrovert_tts_entity_id')
     export EXTROVERT_TTS_VOICE=$(bashio::config 'extrovert_tts_voice')
 
     bashio::log.info "EXTROVERT enabled - Rate limit: ${EXTROVERT_RATE_LIMIT} requests per hour"
+    bashio::log.info "EXTROVERT TTS entity: ${EXTROVERT_TTS_ENTITY_ID}"
     if [ -n "${EXTROVERT_TTS_VOICE}" ]; then
         bashio::log.info "EXTROVERT TTS voice: ${EXTROVERT_TTS_VOICE}"
     else
