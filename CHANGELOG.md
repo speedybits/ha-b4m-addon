@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.4] - 2025-10-12
+
+### Fixed
+- Added `cache: false` parameter to TTS service call
+- Removed `language` parameter that was causing 400 errors
+
+### Changed
+- Enhanced debug logging to show request data and full response body
+- Added pre-call logging to show TTS service data being sent
+
 ## [1.3.3] - 2025-10-12
 
 ### Fixed

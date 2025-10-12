@@ -51,7 +51,7 @@ EXTROVERT_RATE_LIMIT = int(os.environ.get('EXTROVERT_RATE_LIMIT', '10'))
 EXTROVERT_TTS_VOICE = os.environ.get('EXTROVERT_TTS_VOICE', '')
 
 # Initialize FastAPI
-app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.3")
+app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.4")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None
@@ -544,21 +544,21 @@ if EXTROVERT_ENABLED:
             voice = voice_override or (EXTROVERT_TTS_VOICE if EXTROVERT_TTS_VOICE else None)
 
             # Build service data according to HA API format for tts.speak
-            # The new tts.speak service (HA 2023.5+) uses this format
+            # The tts.speak service (HA 2023.5+) uses this format
             service_data = {
-                "message": text
+                "message": text,
+                "cache": False
             }
 
             # entity_id specifies which media player(s) to use
             if media_player:
                 service_data["entity_id"] = media_player
 
-            # language parameter (optional, uses default if not specified)
-            service_data["language"] = "en"
-
             # Add voice option if specified (for Piper and other TTS engines)
             if voice:
                 service_data["options"] = {"voice": voice}
+
+            print(f"🔊 EXTROVERT: Calling TTS service with data: {service_data}")
 
             response = await http_client.post(
                 f"{EXTROVERT_HA_URL}/services/tts/speak",
@@ -575,12 +575,10 @@ if EXTROVERT_ENABLED:
             return True
 
         except httpx.HTTPStatusError as e:
-            # Log response body for debugging
-            try:
-                error_detail = e.response.text
-                print(f"⚠️ EXTROVERT: TTS failed (silent) - {e.response.status_code}: {error_detail}")
-            except:
-                print(f"⚠️ EXTROVERT: TTS failed (silent) - HTTPStatusError: {e}")
+            # Log detailed error information
+            print(f"⚠️ EXTROVERT: TTS failed (silent) - Status: {e.response.status_code}")
+            print(f"⚠️ EXTROVERT: Response body: {e.response.text}")
+            print(f"⚠️ EXTROVERT: Request data: {service_data}")
             return False
         except Exception as e:
             print(f"⚠️ EXTROVERT: TTS failed (silent) - {type(e).__name__}: {e}")
