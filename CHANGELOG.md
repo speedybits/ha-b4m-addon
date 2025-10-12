@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.12] - 2025-10-12
+
+### Fixed
+- EXTROVERT now calls the correct TTS service endpoint
+- Service URL built from entity_id: `tts.cloud_say` → `/services/tts/cloud_say`
+- Previously was calling `/services/tts/speak` for all TTS engines
+- Removed entity_id from service_data (not needed when calling specific service)
+
+### Technical
+- Service endpoint now dynamically constructed from `extrovert_tts_entity_id`
+- Example: `tts.piper` → `/services/tts/piper`
+- Example: `tts.cloud_say` → `/services/tts/cloud_say`
+
 ## [1.3.11] - 2025-10-12
 
 ### Fixed

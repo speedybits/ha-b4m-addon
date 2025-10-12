@@ -53,7 +53,7 @@ EXTROVERT_TTS_ENTITY_ID = os.environ.get('EXTROVERT_TTS_ENTITY_ID', 'tts.piper')
 EXTROVERT_TTS_VOICE = os.environ.get('EXTROVERT_TTS_VOICE', '')
 
 # Initialize FastAPI
-app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.11")
+app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.12")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None
@@ -568,14 +568,11 @@ if EXTROVERT_ENABLED:
 
             voice = voice_override or (EXTROVERT_TTS_VOICE if EXTROVERT_TTS_VOICE else None)
 
-            # Build service data according to HA API format for tts.speak
-            # The tts.speak service requires:
-            # - entity_id: the TTS engine (tts.piper, tts.google_translate_say, etc.)
-            # - media_player_entity_id: where to play the audio
-            # - message: the text to speak
+            # Build service data according to HA API format
+            # When calling specific TTS service (e.g., /services/tts/cloud_say),
+            # we don't need entity_id in the payload
             service_data = {
-                "message": text,
-                "entity_id": EXTROVERT_TTS_ENTITY_ID
+                "message": text
             }
 
             # Add cache parameter - cloud TTS uses true, others use false
@@ -592,7 +589,10 @@ if EXTROVERT_ENABLED:
             if voice:
                 service_data["options"] = {"voice": voice}
 
-            tts_url = f"{EXTROVERT_HA_URL}/services/tts/speak"
+            # Build service URL from entity_id (e.g., tts.piper -> /services/tts/piper)
+            # For cloud TTS: tts.cloud_say -> /services/tts/cloud_say
+            service_name = EXTROVERT_TTS_ENTITY_ID.split('.', 1)[1]  # Get part after 'tts.'
+            tts_url = f"{EXTROVERT_HA_URL}/services/tts/{service_name}"
 
             print(f"🔊 EXTROVERT: Calling TTS service")
             print(f"   URL: {tts_url}")
