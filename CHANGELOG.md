@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2025-10-12
+
+### Fixed
+- EXTROVERT TTS authentication by adding `homeassistant_api: true` to config.yaml
+- Add-on now receives SUPERVISOR_TOKEN required for calling tts.speak service
+
+### Changed
+- Improved INSTALL.md with GUI-focused instructions for automation creation (Step 12C)
+- Clarified shim_api_key configuration in INSTALL.md (Step 12B)
+
 ## [1.3.0] - 2025-10-12
 
 ### Added
@@ -21,11 +31,6 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Updated README.md with EXTROVERT feature overview
 - Enhanced startup logging to show EXTROVERT status
-- Improved INSTALL.md with GUI-focused instructions for automation creation
-
-### Fixed
-- EXTROVERT TTS authentication by adding `homeassistant_api: true` to config.yaml
-- Add-on now receives SUPERVISOR_TOKEN required for calling tts.speak service
 
 ### Technical
 - EXTROVERT prompts sent directly to bike4mind (no transformation)
