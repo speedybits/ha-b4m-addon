@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2025-10-12
+
+### Added
+- EXTROVERT feature: Proactive AI conversations triggered by Home Assistant automations
+- New API endpoint `/v1/extrovert/trigger` for automation-triggered prompts
+- Configuration options: `extrovert_enabled`, `extrovert_rate_limit`, `extrovert_tts_voice`
+- Rate limiting system (default: 10 requests per hour, configurable 1-100)
+- Busy state management to prevent concurrent EXTROVERT requests
+- Response sanitization for TTS (strips markdown, JSON blocks, truncates to 200 words)
+- Silent error handling (errors logged but not spoken)
+- VISUAL_ASSIST integration for EXTROVERT (thinking/speaking/idle states)
+- Session continuity: EXTROVERT uses same session ID as interactive conversations
+- Comprehensive documentation in EXTROVERT.md specification
+- Installation guide in INSTALL.md (Step 12)
+- REST command and automation examples
+
+### Changed
+- Updated README.md with EXTROVERT feature overview
+- Enhanced startup logging to show EXTROVERT status
+
+### Technical
+- EXTROVERT prompts sent directly to bike4mind (no transformation)
+- Uses `tts.speak` service with optional voice override
+- TTS duration estimation for VISUAL_ASSIST state transitions
+- Architecture supports conversation-focused prompts (not device control)
+
+### Limitations Documented
+- No automatic listening after TTS responses (Home Assistant platform limitation)
+- Best suited for one-way announcements or rhetorical questions
+- Users must say wake word again to respond to EXTROVERT prompts
+
 ## [1.2.2] - 2025-10-09
 
 ### Fixed

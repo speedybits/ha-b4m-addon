@@ -51,7 +51,7 @@ EXTROVERT_RATE_LIMIT = int(os.environ.get('EXTROVERT_RATE_LIMIT', '10'))
 EXTROVERT_TTS_VOICE = os.environ.get('EXTROVERT_TTS_VOICE', '')
 
 # Initialize FastAPI
-app = FastAPI(title="bike4mind OpenAI Shim", version="1.2.2")
+app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.0")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None
