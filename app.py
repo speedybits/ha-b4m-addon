@@ -52,7 +52,7 @@ EXTROVERT_TTS_ENTITY_ID = os.environ.get('EXTROVERT_TTS_ENTITY_ID', 'tts.piper')
 EXTROVERT_TTS_VOICE = os.environ.get('EXTROVERT_TTS_VOICE', '')
 
 # Initialize FastAPI
-app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.6")
+app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.7")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None
@@ -563,10 +563,18 @@ if EXTROVERT_ENABLED:
             if voice:
                 service_data["options"] = {"voice": voice}
 
-            print(f"🔊 EXTROVERT: Calling TTS service with data: {service_data}")
+            tts_url = f"{EXTROVERT_HA_URL}/services/tts/speak"
+
+            print(f"🔊 EXTROVERT: Calling TTS service")
+            print(f"   URL: {tts_url}")
+            print(f"   TTS Entity: {service_data.get('entity_id')}")
+            print(f"   Media Player: {service_data.get('media_player_entity_id', 'not specified')}")
+            print(f"   Message: {text[:50]}{'...' if len(text) > 50 else ''}")
+            print(f"   Voice: {voice if voice else 'default'}")
+            print(f"   Full service_data: {service_data}")
 
             response = await http_client.post(
-                f"{EXTROVERT_HA_URL}/services/tts/speak",
+                tts_url,
                 json=service_data,
                 headers=headers,
                 timeout=10.0
@@ -576,14 +584,17 @@ if EXTROVERT_ENABLED:
             voice_msg = f" with voice: {voice}" if voice else ""
             override_msg = " (overridden)" if voice_override else " (from config)"
             media_msg = f" to {media_player}" if media_player else ""
-            print(f"🔊 EXTROVERT: TTS triggered{media_msg}{voice_msg}{override_msg if voice else ''}")
+            print(f"✅ EXTROVERT: TTS succeeded{media_msg}{voice_msg}{override_msg if voice else ''}")
             return True
 
         except httpx.HTTPStatusError as e:
             # Log detailed error information
-            print(f"⚠️ EXTROVERT: TTS failed (silent) - Status: {e.response.status_code}")
-            print(f"⚠️ EXTROVERT: Response body: {e.response.text}")
-            print(f"⚠️ EXTROVERT: Request data: {service_data}")
+            print(f"⚠️ EXTROVERT: TTS failed (silent)")
+            print(f"   Status: {e.response.status_code}")
+            print(f"   Response: {e.response.text}")
+            print(f"   URL: {tts_url}")
+            print(f"   Request data: {service_data}")
+            print(f"   Headers: Authorization=Bearer ***{EXTROVERT_HA_TOKEN[-8:] if len(EXTROVERT_HA_TOKEN) > 8 else '***'}")
             return False
         except Exception as e:
             print(f"⚠️ EXTROVERT: TTS failed (silent) - {type(e).__name__}: {e}")

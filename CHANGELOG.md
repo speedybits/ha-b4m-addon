@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.7] - 2025-10-12
+
+### Changed
+- Enhanced EXTROVERT TTS debug logging with comprehensive details
+- Now logs: URL, TTS entity, media player, message preview, voice, full service data
+- Success logging now shows ✅ instead of 🔊 for clarity
+- Error logging shows sanitized auth token (last 8 chars only)
+- Multi-line structured logging for easier reading
+
 ## [1.3.6] - 2025-10-12
 
 ### Added
