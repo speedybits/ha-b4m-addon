@@ -43,6 +43,13 @@ VISUAL_ASSIST_THINKING_GIF_URL = os.environ.get('VISUAL_ASSIST_THINKING_GIF_URL'
 VISUAL_ASSIST_SPEAKING_GIF_URL = os.environ.get('VISUAL_ASSIST_SPEAKING_GIF_URL', '')
 VISUAL_ASSIST_IDLE_GIF_URL = os.environ.get('VISUAL_ASSIST_IDLE_GIF_URL', '')
 
+# EXTROVERT settings
+EXTROVERT_ENABLED = os.environ.get('EXTROVERT_ENABLED', 'false').lower() == 'true'
+EXTROVERT_HA_URL = os.environ.get('EXTROVERT_HA_URL', 'http://supervisor/core/api')
+EXTROVERT_HA_TOKEN = os.environ.get('EXTROVERT_HA_TOKEN', os.environ.get('SUPERVISOR_TOKEN', ''))
+EXTROVERT_RATE_LIMIT = int(os.environ.get('EXTROVERT_RATE_LIMIT', '10'))
+EXTROVERT_TTS_VOICE = os.environ.get('EXTROVERT_TTS_VOICE', '')
+
 # Initialize FastAPI
 app = FastAPI(title="bike4mind OpenAI Shim", version="1.2.2")
 
@@ -90,6 +97,10 @@ class ConnectionManager:
 
 visual_assist_manager = ConnectionManager() if VISUAL_ASSIST_ENABLED else None
 
+# EXTROVERT state tracking
+extrovert_busy: bool = False
+extrovert_request_times: List[float] = []
+
 
 # Pydantic models
 class Message(BaseModel):
@@ -104,6 +115,12 @@ class ChatCompletionRequest(BaseModel):
     user: Optional[str] = None
 
 
+class ExtrovertRequest(BaseModel):
+    prompt: str
+    context: Optional[Dict[str, Any]] = None
+    tts_config: Optional[Dict[str, Any]] = None
+
+
 # Startup/shutdown handlers
 @app.on_event("startup")
 async def startup_event():
@@ -114,6 +131,8 @@ async def startup_event():
     print(f"   B4M Base: {B4M_BASE}")
     print(f"   Session ID: {HA_B4M_SESSION_ID[:8]}..." if HA_B4M_SESSION_ID else "   ⚠️ No session ID configured")
     print(f"   Auth: {'Enabled' if SHIM_API_KEY else 'Disabled (not recommended)'}")
+    print(f"   VISUAL_ASSIST: {'Enabled' if VISUAL_ASSIST_ENABLED else 'Disabled'}")
+    print(f"   EXTROVERT: {'Enabled' if EXTROVERT_ENABLED else 'Disabled'}")
 
 
 @app.on_event("shutdown")
@@ -476,6 +495,206 @@ async def reset_session(request: Request):
 
 # Missing import
 import asyncio
+
+
+# EXTROVERT endpoints (conditionally registered)
+if EXTROVERT_ENABLED:
+    def sanitize_response_for_tts(text: str, max_words: int = 200) -> str:
+        """
+        Sanitize bike4mind response for TTS output
+        - Strips markdown formatting
+        - Removes JSON blocks (prevents tool calls)
+        - Truncates to max_words
+        """
+        # Strip markdown code blocks
+        text = re.sub(r'```[\s\S]*?```', '', text)
+
+        # Strip inline code
+        text = re.sub(r'`([^`]+)`', r'\1', text)
+
+        # Strip bold/italic
+        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
+        text = re.sub(r'\*([^*]+)\*', r'\1', text)
+
+        # Strip markdown links
+        text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+
+        # Strip JSON blocks (tool calls)
+        text = re.sub(r'\{[\s\S]*?\}', '', text)
+
+        # Clean up multiple newlines
+        text = re.sub(r'\n{3,}', '\n\n', text)
+
+        # Truncate to max words
+        words = text.split()
+        if len(words) > max_words:
+            text = ' '.join(words[:max_words]) + '...'
+
+        return text.strip()
+
+
+    async def trigger_ha_tts(text: str, media_player: Optional[str], voice_override: Optional[str] = None) -> bool:
+        """Trigger Home Assistant TTS service"""
+        try:
+            headers = {
+                "Authorization": f"Bearer {EXTROVERT_HA_TOKEN}",
+                "Content-Type": "application/json"
+            }
+
+            voice = voice_override or (EXTROVERT_TTS_VOICE if EXTROVERT_TTS_VOICE else None)
+
+            service_data = {
+                "message": text
+            }
+
+            if media_player:
+                service_data["media_player_entity_id"] = media_player
+
+            if voice:
+                service_data["options"] = {"voice": voice}
+
+            response = await http_client.post(
+                f"{EXTROVERT_HA_URL}/services/tts/speak",
+                json=service_data,
+                headers=headers,
+                timeout=10.0
+            )
+
+            response.raise_for_status()
+            voice_msg = f" with voice: {voice}" if voice else ""
+            override_msg = " (overridden)" if voice_override else " (from config)"
+            print(f"🔊 EXTROVERT: TTS triggered{voice_msg}{override_msg if voice else ''}")
+            return True
+
+        except Exception as e:
+            print(f"⚠️ EXTROVERT: TTS failed (silent) - {type(e).__name__}: {e}")
+            return False
+
+
+    @app.post("/v1/extrovert/trigger", dependencies=[Depends(verify_shim_auth)])
+    async def extrovert_trigger(request: ExtrovertRequest):
+        """
+        EXTROVERT endpoint: Accept prompt from HA automation,
+        send to bike4mind, speak response via TTS
+        """
+        global extrovert_busy, extrovert_request_times
+
+        # Check if assistant is busy
+        if extrovert_busy:
+            return JSONResponse({
+                "status": "ignored",
+                "reason": "assistant_busy",
+                "message": "Assistant is already processing a request"
+            })
+
+        # Rate limiting: Check recent request count
+        current_time = time.time()
+        one_hour_ago = current_time - 3600
+        extrovert_request_times = [t for t in extrovert_request_times if t > one_hour_ago]
+
+        if len(extrovert_request_times) >= EXTROVERT_RATE_LIMIT:
+            return JSONResponse({
+                "status": "rate_limited",
+                "reason": "rate_limit_exceeded",
+                "message": f"Rate limit of {EXTROVERT_RATE_LIMIT} requests per hour exceeded"
+            }, status_code=429)
+
+        extrovert_request_times.append(current_time)
+        extrovert_busy = True
+
+        try:
+            # Set VISUAL_ASSIST to thinking state
+            if VISUAL_ASSIST_ENABLED and visual_assist_manager:
+                await visual_assist_manager.broadcast_state("thinking")
+
+            # Create bike4mind quest with prompt
+            quest_id = await create_b4m_quest(request.prompt)
+            if not quest_id:
+                return JSONResponse({
+                    "status": "error",
+                    "error": "Failed to create bike4mind quest"
+                })
+
+            print(f"🤖 EXTROVERT: Created quest {quest_id}")
+
+            # Poll for response
+            response_text = await poll_b4m_quest(quest_id)
+            if not response_text:
+                return JSONResponse({
+                    "status": "error",
+                    "error": "No response from bike4mind"
+                })
+
+            print(f"💬 EXTROVERT: Got response ({len(response_text)} chars)")
+
+            # Sanitize response
+            sanitized = sanitize_response_for_tts(response_text)
+            print(f"✨ EXTROVERT: Sanitized to ({len(sanitized)} chars)")
+
+            # Set VISUAL_ASSIST to speaking state
+            if VISUAL_ASSIST_ENABLED and visual_assist_manager:
+                await visual_assist_manager.broadcast_state("speaking")
+
+            # Trigger TTS
+            tts_config = request.tts_config or {}
+            media_player = tts_config.get("media_player")
+            voice_override = tts_config.get("voice")
+
+            tts_triggered = await trigger_ha_tts(
+                sanitized,
+                media_player,
+                voice_override
+            )
+
+            # Set VISUAL_ASSIST back to idle after brief delay
+            if VISUAL_ASSIST_ENABLED and visual_assist_manager:
+                async def wait_and_idle():
+                    # Estimate TTS duration: ~150 words/min = 2.5 words/sec
+                    word_count = len(sanitized.split())
+                    tts_duration = max(2, word_count / 2.5)
+                    await asyncio.sleep(tts_duration)
+                    await visual_assist_manager.broadcast_state("idle")
+
+                asyncio.create_task(wait_and_idle())
+
+            return JSONResponse({
+                "status": "success",
+                "quest_id": quest_id,
+                "response": sanitized,
+                "tts_triggered": tts_triggered
+            })
+
+        except asyncio.TimeoutError:
+            if VISUAL_ASSIST_ENABLED and visual_assist_manager:
+                await visual_assist_manager.broadcast_state("idle")
+
+            print(f"⏱️ EXTROVERT: bike4mind quest timed out")
+
+            return JSONResponse({
+                "status": "success",
+                "quest_id": quest_id if 'quest_id' in locals() else None,
+                "response": "",
+                "tts_triggered": False,
+                "timeout": True
+            })
+
+        except Exception as e:
+            if VISUAL_ASSIST_ENABLED and visual_assist_manager:
+                await visual_assist_manager.broadcast_state("idle")
+
+            print(f"❌ EXTROVERT: Error - {e}")
+
+            return JSONResponse({
+                "status": "success",
+                "quest_id": None,
+                "response": "",
+                "tts_triggered": False,
+                "error": str(e)
+            })
+
+        finally:
+            # Always clear busy flag
+            extrovert_busy = False
 
 
 # VISUAL_ASSIST endpoints (conditionally registered)

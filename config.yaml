@@ -26,6 +26,9 @@ options:
   visual_assist_thinking_gif_url: ""
   visual_assist_speaking_gif_url: ""
   visual_assist_idle_gif_url: ""
+  extrovert_enabled: false
+  extrovert_rate_limit: 10
+  extrovert_tts_voice: ""
 schema:
   b4m_api_key: str
   ha_b4m_session_id: str
@@ -43,3 +46,6 @@ schema:
   visual_assist_thinking_gif_url: str?
   visual_assist_speaking_gif_url: str?
   visual_assist_idle_gif_url: str?
+  extrovert_enabled: bool?
+  extrovert_rate_limit: int(1,100)?
+  extrovert_tts_voice: str?
