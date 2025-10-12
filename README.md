@@ -11,6 +11,8 @@ OpenAI-compatible API shim that translates between Home Assistant's Extended Ope
 - ✅ Configurable timeouts and polling intervals
 - ✅ Optional API key authentication
 - ✅ Home Assistant Add-on with UI configuration
+- ✅ **EXTROVERT**: Proactive AI conversations triggered by automations
+- ✅ **VISUAL_ASSIST**: Visual feedback with animated GIFs
 
 ## Architecture
 
@@ -111,6 +113,38 @@ visual_assist_idle_gif_url: "https://YOUR_HA_IP:8123/local/idle.gif"
 **Access visual viewer**: `http://YOUR_HA_IP:3000/visual`
 
 For GIF hosting options and setup guide, see [VISUAL_ASSIST.md](VISUAL_ASSIST.md)
+
+### EXTROVERT Settings (Optional)
+
+Proactive AI conversation feature that allows Home Assistant automations to trigger bike4mind responses spoken via TTS:
+
+- **extrovert_enabled**: Enable/disable EXTROVERT feature (default: `false`)
+- **extrovert_rate_limit**: Maximum requests per hour (default: `10`, range: 1-100)
+- **extrovert_tts_voice**: Voice name for TTS responses (optional, blank = use TTS service default)
+
+**Example**:
+```yaml
+extrovert_enabled: true
+extrovert_rate_limit: 10
+extrovert_tts_voice: "en_US-lessac-medium"
+```
+
+**Key Features**:
+- Automation-triggered prompts sent to bike4mind
+- Responses spoken via Home Assistant TTS
+- Same session ID as interactive conversations (context continuity)
+- Rate limiting to prevent spam
+- Busy state management (one request at a time)
+- Silent error handling
+- Integrates with VISUAL_ASSIST
+
+**Use Cases**:
+- Motion detection: "Someone entered the living room. Greet them in 1 sentence."
+- Temperature alerts: "The bedroom is 78°F. Comment on this in 1 sentence."
+- Door events: "The front door opened at 5:30 PM. Welcome them home in 1 sentence."
+- Device status: "The washing machine finished. Let me know in 1 sentence."
+
+For complete specification and setup guide, see [EXTROVERT.md](EXTROVERT.md)
 
 ## Home Assistant Integration
 

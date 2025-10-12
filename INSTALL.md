@@ -244,6 +244,157 @@ visual_assist_idle_gif_url: "http://YOUR_HA_IP:8123/local/idle.gif"
 
 For detailed VISUAL_ASSIST documentation, see [VISUAL_ASSIST.md](VISUAL_ASSIST.md)
 
+## Step 12: Optional - Enable EXTROVERT
+
+EXTROVERT allows Home Assistant automations to send prompts to bike4mind for AI processing, with responses spoken aloud through TTS. This creates a conversational smart home where the assistant can proactively start conversations based on events.
+
+### Step 12A: Configure EXTROVERT
+
+1. Go to bike4mind OpenAI Shim add-on **Configuration** tab
+2. Enable and configure EXTROVERT:
+
+```yaml
+extrovert_enabled: true
+extrovert_rate_limit: 10
+extrovert_tts_voice: "en_US-lessac-medium"  # Optional: leave blank for TTS default
+```
+
+3. **Finding Available Voices**:
+   - Go to **Settings → Voice Assistants → Text-to-Speech**
+   - Click on your TTS engine (e.g., Piper)
+   - View the list of installed voices
+   - Copy the exact voice name
+
+4. Click **Save**
+5. Go to **Info** tab → Click **Restart**
+6. Check **Log** tab for: `EXTROVERT enabled - Rate limit: 10 requests per hour`
+
+### Step 12B: Create REST Command
+
+Add to Home Assistant's `configuration.yaml`:
+
+```yaml
+rest_command:
+  extrovert_trigger:
+    url: "http://YOUR_HA_IP:3000/v1/extrovert/trigger"
+    method: POST
+    headers:
+      Authorization: "Bearer YOUR_SHIM_API_KEY"
+      Content-Type: "application/json"
+    payload: >
+      {
+        "prompt": "{{ prompt }}",
+        "context": {{ context | tojson }},
+        "tts_config": {
+          "media_player": "{{ media_player }}"
+        }
+      }
+```
+
+Replace:
+- `YOUR_HA_IP` with your Home Assistant IP address
+- `YOUR_SHIM_API_KEY` with the `shim_api_key` from add-on configuration
+
+### Step 12C: Create Test Automation
+
+Add to Home Assistant's `configuration.yaml` or via UI:
+
+```yaml
+automation:
+  - alias: "EXTROVERT - Test Trigger"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.test_extrovert
+        to: 'on'
+    action:
+      - action: rest_command.extrovert_trigger
+        data:
+          prompt: >
+            This is a test at {{ now().strftime('%I:%M %p') }}.
+            Say something friendly in 1 sentence to confirm you received this.
+          context:
+            trigger_type: "test"
+          media_player: "media_player.YOUR_SPEAKER_NAME"
+      - delay: 2
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.test_extrovert
+```
+
+Replace `media_player.YOUR_SPEAKER_NAME` with your actual media player entity ID.
+
+### Step 12D: Create Test Helper
+
+1. Go to **Settings → Devices & Services → Helpers**
+2. Click **Create Helper**
+3. Select **Toggle**
+4. Name: `Test EXTROVERT`
+5. Entity ID: `input_boolean.test_extrovert`
+6. Click **Create**
+
+### Step 12E: Test EXTROVERT
+
+1. Go to **Settings → Devices & Services → Helpers**
+2. Find **Test EXTROVERT** toggle
+3. Toggle it **ON**
+4. You should hear bike4mind's response through your speaker within 5-30 seconds
+5. The toggle will automatically turn off after 2 seconds
+
+### Step 12F: Create Real Automations
+
+**Example: Motion Detection**
+
+```yaml
+automation:
+  - alias: "EXTROVERT - Living Room Motion"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.living_room_motion
+        to: 'on'
+    condition:
+      - condition: time
+        after: '18:00:00'
+        before: '23:00:00'
+    action:
+      - action: rest_command.extrovert_trigger
+        data:
+          prompt: >
+            Someone just entered the living room at {{ now().strftime('%I:%M %p') }}.
+            Say something welcoming in 1 sentence.
+          context:
+            trigger_type: "motion_detected"
+            location: "living_room"
+          media_player: "media_player.living_room_speaker"
+```
+
+**Example: Temperature Alert**
+
+```yaml
+automation:
+  - alias: "EXTROVERT - High Temperature"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.bedroom_temperature
+        above: 78
+    action:
+      - action: rest_command.extrovert_trigger
+        data:
+          prompt: >
+            The bedroom temperature is {{ states('sensor.bedroom_temperature') }}°F.
+            Comment on this in a lighthearted way in 1 sentence.
+          context:
+            trigger_type: "temperature_alert"
+          media_player: "media_player.bedroom_speaker"
+```
+
+**Prompt Engineering Tips**:
+- Ask for "1 sentence" to keep responses brief
+- Include tone guidance ("friendly", "lighthearted", "motivational")
+- Provide context about what happened
+- Use specific instructions ("greet them", "welcome them home")
+
+For complete EXTROVERT documentation and more examples, see [EXTROVERT.md](EXTROVERT.md)
+
 ## Troubleshooting
 
 ### Add-on Won't Start
