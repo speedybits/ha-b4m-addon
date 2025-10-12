@@ -271,6 +271,8 @@ extrovert_tts_voice: "en_US-lessac-medium"  # Optional: leave blank for TTS defa
 
 ### Step 12B: Create REST Command
 
+**Note**: This step requires editing `configuration.yaml` (cannot be done in GUI).
+
 Add to Home Assistant's `configuration.yaml`:
 
 ```yaml
@@ -291,37 +293,61 @@ rest_command:
       }
 ```
 
-Replace:
-- `YOUR_HA_IP` with your Home Assistant IP address
-- `YOUR_SHIM_API_KEY` with the `shim_api_key` from add-on configuration
+**Replace these values**:
+- `YOUR_HA_IP` → Your Home Assistant IP address (from Step 5)
+  - Example: `192.168.1.100`
+- `YOUR_SHIM_API_KEY` → The `shim_api_key` you configured in **Step 3**
+  - This is the same API key you use for Extended OpenAI Conversation
+  - Example: `abc123def456...` (your 32-character hex key)
+  - Find it in: bike4mind add-on → Configuration tab → `shim_api_key` field
+
+**After editing**:
+1. Save `configuration.yaml`
+2. Go to **Settings → System → Restart** (or use **Developer Tools → YAML → Check Configuration** then restart)
+3. Wait for Home Assistant to restart
 
 ### Step 12C: Create Test Automation
 
-Add to Home Assistant's `configuration.yaml` or via UI:
+**Using Home Assistant GUI** (recommended):
+
+1. Go to **Settings → Automations & Scenes**
+2. Click **Create Automation** (bottom right)
+3. Click **Create new automation** (skip blueprints)
+4. Click **⋮ (menu)** in top right → **Edit in YAML**
+5. Paste this automation:
 
 ```yaml
-automation:
-  - alias: "EXTROVERT - Test Trigger"
-    trigger:
-      - platform: state
-        entity_id: input_boolean.test_extrovert
-        to: 'on'
-    action:
-      - action: rest_command.extrovert_trigger
-        data:
-          prompt: >
-            This is a test at {{ now().strftime('%I:%M %p') }}.
-            Say something friendly in 1 sentence to confirm you received this.
-          context:
-            trigger_type: "test"
-          media_player: "media_player.YOUR_SPEAKER_NAME"
-      - delay: 2
-      - action: input_boolean.turn_off
-        target:
-          entity_id: input_boolean.test_extrovert
+alias: "EXTROVERT - Test Trigger"
+trigger:
+  - platform: state
+    entity_id: input_boolean.test_extrovert
+    to: "on"
+action:
+  - action: rest_command.extrovert_trigger
+    data:
+      prompt: >
+        This is a test at {{ now().strftime('%I:%M %p') }}. Say something
+        friendly in 1 sentence to confirm you received this.
+      context:
+        trigger_type: test
+      media_player: media_player.YOUR_SPEAKER_NAME
+  - delay:
+      seconds: 2
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.test_extrovert
 ```
 
-Replace `media_player.YOUR_SPEAKER_NAME` with your actual media player entity ID.
+6. **Replace** `media_player.YOUR_SPEAKER_NAME` with your actual media player entity ID
+   - Find available media players: **Settings → Devices & Services → Entities** → filter by "media_player"
+   - Example: `media_player.living_room_speaker`
+7. Click **Save** (top right)
+8. Give it a name: `EXTROVERT - Test Trigger`
+9. Click **Save** again
+
+**Alternative: YAML method** (for advanced users):
+
+Add to `configuration.yaml` and restart Home Assistant.
 
 ### Step 12D: Create Test Helper
 
