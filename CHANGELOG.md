@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.11] - 2025-10-12
+
+### Fixed
+- EXTROVERT TTS now uses `cache: true` for Home Assistant Cloud
+- Cloud TTS requires cache enabled, not disabled or omitted
+- Based on testing with Developer Tools showing cache must be checked
+
+### Technical
+- Cloud TTS engines: `cache: true`
+- Other TTS engines (Piper, etc.): `cache: false`
+
 ## [1.3.10] - 2025-10-12
 
 ### Fixed
