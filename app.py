@@ -15,7 +15,8 @@ from datetime import datetime, timedelta
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Depends, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
-from pydantic import BaseModel
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, ValidationError
 
 # Configuration from environment variables
 B4M_API_KEY = os.environ.get('B4M_API_KEY')
@@ -52,7 +53,7 @@ EXTROVERT_TTS_ENTITY_ID = os.environ.get('EXTROVERT_TTS_ENTITY_ID', 'tts.piper')
 EXTROVERT_TTS_VOICE = os.environ.get('EXTROVERT_TTS_VOICE', '')
 
 # Initialize FastAPI
-app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.7")
+app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.8")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None
@@ -120,6 +121,29 @@ class ExtrovertRequest(BaseModel):
     prompt: str
     context: Optional[Dict[str, Any]] = None
     tts_config: Optional[Dict[str, Any]] = None
+
+
+# Exception handlers
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Log validation errors with request body for debugging"""
+    try:
+        body = await request.body()
+        print(f"⚠️ EXTROVERT: Validation error (422)")
+        print(f"   Path: {request.url.path}")
+        print(f"   Received body: {body.decode('utf-8')}")
+        print(f"   Validation errors: {exc.errors()}")
+    except Exception as e:
+        print(f"⚠️ EXTROVERT: Validation error (422) - Could not log body: {e}")
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "status": "error",
+            "message": "Invalid request format",
+            "errors": exc.errors()
+        }
+    )
 
 
 # Startup/shutdown handlers

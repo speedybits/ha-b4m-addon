@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.8] - 2025-10-12
+
+### Added
+- Custom exception handler for 422 validation errors
+- Logs received request body and validation errors for debugging
+- Returns detailed error response with validation error details
+
+### Changed
+- 422 errors now show what was received and why it failed
+
 ## [1.3.7] - 2025-10-12
 
 ### Changed
