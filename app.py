@@ -127,7 +127,7 @@ async def startup_event():
     """Initialize HTTP client on startup"""
     global http_client
     http_client = httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=5.0))
-    print(f"🚀 bike4mind OpenAI Shim started")
+    print(f"🚀 bike4mind OpenAI Shim v{app.version} started")
     print(f"   B4M Base: {B4M_BASE}")
     print(f"   Session ID: {HA_B4M_SESSION_ID[:8]}..." if HA_B4M_SESSION_ID else "   ⚠️ No session ID configured")
     print(f"   Auth: {'Enabled' if SHIM_API_KEY else 'Disabled (not recommended)'}")
@@ -544,11 +544,17 @@ if EXTROVERT_ENABLED:
             voice = voice_override or (EXTROVERT_TTS_VOICE if EXTROVERT_TTS_VOICE else None)
 
             # Build service data according to HA API format for tts.speak
-            # See: https://www.home-assistant.io/integrations/tts/
+            # The new tts.speak service (HA 2023.5+) uses this format
             service_data = {
-                "message": text,
-                "media_player_entity_id": media_player or "all"
+                "message": text
             }
+
+            # entity_id specifies which media player(s) to use
+            if media_player:
+                service_data["entity_id"] = media_player
+
+            # language parameter (optional, uses default if not specified)
+            service_data["language"] = "en"
 
             # Add voice option if specified (for Piper and other TTS engines)
             if voice:
@@ -571,7 +577,7 @@ if EXTROVERT_ENABLED:
         except httpx.HTTPStatusError as e:
             # Log response body for debugging
             try:
-                error_detail = e.response.json()
+                error_detail = e.response.text
                 print(f"⚠️ EXTROVERT: TTS failed (silent) - {e.response.status_code}: {error_detail}")
             except:
                 print(f"⚠️ EXTROVERT: TTS failed (silent) - HTTPStatusError: {e}")
