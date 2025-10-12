@@ -543,13 +543,14 @@ if EXTROVERT_ENABLED:
 
             voice = voice_override or (EXTROVERT_TTS_VOICE if EXTROVERT_TTS_VOICE else None)
 
+            # Build service data according to HA API format for tts.speak
+            # See: https://www.home-assistant.io/integrations/tts/
             service_data = {
-                "message": text
+                "message": text,
+                "media_player_entity_id": media_player or "all"
             }
 
-            if media_player:
-                service_data["media_player_entity_id"] = media_player
-
+            # Add voice option if specified (for Piper and other TTS engines)
             if voice:
                 service_data["options"] = {"voice": voice}
 
@@ -563,9 +564,18 @@ if EXTROVERT_ENABLED:
             response.raise_for_status()
             voice_msg = f" with voice: {voice}" if voice else ""
             override_msg = " (overridden)" if voice_override else " (from config)"
-            print(f"🔊 EXTROVERT: TTS triggered{voice_msg}{override_msg if voice else ''}")
+            media_msg = f" to {media_player}" if media_player else ""
+            print(f"🔊 EXTROVERT: TTS triggered{media_msg}{voice_msg}{override_msg if voice else ''}")
             return True
 
+        except httpx.HTTPStatusError as e:
+            # Log response body for debugging
+            try:
+                error_detail = e.response.json()
+                print(f"⚠️ EXTROVERT: TTS failed (silent) - {e.response.status_code}: {error_detail}")
+            except:
+                print(f"⚠️ EXTROVERT: TTS failed (silent) - HTTPStatusError: {e}")
+            return False
         except Exception as e:
             print(f"⚠️ EXTROVERT: TTS failed (silent) - {type(e).__name__}: {e}")
             return False
