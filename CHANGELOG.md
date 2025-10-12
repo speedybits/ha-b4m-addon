@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.13] - 2025-10-12
+
+### Fixed
+- Cloud TTS now uses correct parameter name for media player
+- Cloud TTS: `entity_id` (for media player)
+- Other TTS: `media_player_entity_id`
+- This matches Home Assistant's Developer Tools API format
+
+### Technical
+- Conditional parameter naming based on TTS engine type
+- Cloud detection by checking for "cloud" in entity_id
+
 ## [1.3.12] - 2025-10-12
 
 ### Fixed
