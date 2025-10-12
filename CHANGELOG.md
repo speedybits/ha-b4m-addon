@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2] - 2025-10-12
+
+### Fixed
+- EXTROVERT TTS API call format to use correct `media_player_entity_id` parameter
+- Enhanced error logging to show detailed error responses for TTS failures
+
 ## [1.3.1] - 2025-10-12
 
 ### Fixed
