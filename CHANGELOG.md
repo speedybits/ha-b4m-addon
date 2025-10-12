@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.3] - 2025-10-12
+
+### Fixed
+- EXTROVERT TTS service data format to use `entity_id` and `language` parameters
+- Enhanced error logging to show response text instead of JSON for better debugging
+
+### Changed
+- Added version number to startup log output
+
 ## [1.3.2] - 2025-10-12
 
 ### Fixed
