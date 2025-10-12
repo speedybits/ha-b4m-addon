@@ -53,7 +53,7 @@ EXTROVERT_TTS_ENTITY_ID = os.environ.get('EXTROVERT_TTS_ENTITY_ID', 'tts.piper')
 EXTROVERT_TTS_VOICE = os.environ.get('EXTROVERT_TTS_VOICE', '')
 
 # Initialize FastAPI
-app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.8")
+app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.9")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None

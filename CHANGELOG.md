@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.9] - 2025-10-12
+
+### Changed
+- Expanded VISUAL_ASSIST documentation in README.md with complete setup guide
+- Expanded EXTROVERT documentation in README.md with step-by-step instructions
+- Added detailed motion detection automation example with correct `tts_config` format
+- Added multiple automation examples (temperature, door, device status)
+- Consolidated setup instructions from VISUAL_ASSIST.md and EXTROVERT.md into README.md
+- README.md is now the primary user-facing documentation
+
+### Documentation
+- VISUAL_ASSIST section now includes GIF hosting options and complete setup steps
+- EXTROVERT section now includes REST command setup and GUI-based automation creation
+- Emphasized correct JSON structure: `tts_config: { media_player: ... }`
+- Added prompt engineering tips and best practices
+
 ## [1.3.8] - 2025-10-12
 
 ### Added

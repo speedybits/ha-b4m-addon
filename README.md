@@ -95,56 +95,237 @@ Home Assistant Extended OpenAI Conversation
 
 ### VISUAL_ASSIST Settings (Optional)
 
-Visual feedback feature that displays animated GIFs in a web browser based on assistant state:
+Visual feedback feature that displays animated GIFs in a web browser based on assistant state. Shows different animations for thinking (processing), speaking (TTS playback), and idle (ready) states.
 
+**Configuration Options:**
 - **visual_assist_enabled**: Enable/disable visual feedback (default: `false`)
 - **visual_assist_thinking_gif_url**: Web URL to GIF displayed when bike4mind is thinking/processing
 - **visual_assist_speaking_gif_url**: Web URL to GIF displayed when TTS (Piper) is speaking
 - **visual_assist_idle_gif_url**: Web URL to GIF displayed when assistant is idle/ready
 
-**Example**:
+#### Setup Steps
+
+**1. Prepare GIF Files**
+
+You need three animated GIF files:
+- **Thinking GIF**: Shown when bike4mind processes your request (e.g., spinning gears, loading animation)
+- **Speaking GIF**: Shown when TTS plays audio (e.g., animated mouth, sound waves)
+- **Idle GIF**: Shown when ready/waiting (e.g., gentle breathing, blinking)
+
+**2. Host Your GIFs**
+
+Option A - Self-hosted in Home Assistant (recommended):
+1. Upload GIFs to `/config/www/` directory in Home Assistant
+2. Access via: `http://YOUR_HA_IP:8123/local/filename.gif`
+3. Example paths:
+   - `/config/www/thinking.gif` → `http://192.168.1.100:8123/local/thinking.gif`
+   - `/config/www/speaking.gif` → `http://192.168.1.100:8123/local/speaking.gif`
+   - `/config/www/idle.gif` → `http://192.168.1.100:8123/local/idle.gif`
+
+Option B - Cloud hosting:
+- Upload to Imgur, GitHub, or similar service
+- Get public sharing URLs
+
+**3. Configure the Add-on**
+
+Go to bike4mind add-on **Configuration** tab:
+
 ```yaml
 visual_assist_enabled: true
-visual_assist_thinking_gif_url: "https://YOUR_HA_IP:8123/local/thinking.gif"
-visual_assist_speaking_gif_url: "https://YOUR_HA_IP:8123/local/speaking.gif"
-visual_assist_idle_gif_url: "https://YOUR_HA_IP:8123/local/idle.gif"
+visual_assist_thinking_gif_url: "http://YOUR_HA_IP:8123/local/thinking.gif"
+visual_assist_speaking_gif_url: "http://YOUR_HA_IP:8123/local/speaking.gif"
+visual_assist_idle_gif_url: "http://YOUR_HA_IP:8123/local/idle.gif"
 ```
 
-**Access visual viewer**: `http://YOUR_HA_IP:3000/visual`
+Replace `YOUR_HA_IP` with your Home Assistant IP address.
 
-For GIF hosting options and setup guide, see [VISUAL_ASSIST.md](VISUAL_ASSIST.md)
+**4. Restart the Add-on**
+
+Go to **Info** tab → Click **Restart**
+
+**5. Access the Visual Viewer**
+
+Open a web browser and navigate to:
+```
+http://YOUR_HA_IP:3000/visual
+```
+
+You should see your idle GIF displayed with a "Connected" status in the top-right corner.
+
+**6. Test It**
+
+Ask your voice assistant a question. Watch the GIF change:
+- **Idle** → **Thinking** (bike4mind processing) → **Speaking** (TTS playback) → **Idle**
+
+**Use Cases:**
+- Wall-mounted tablet display next to voice assistant
+- Desktop companion during conversations
+- Visual indicator for hearing-impaired users
+- Multiple viewers synchronized across different devices
+
+For technical details, see [VISUAL_ASSIST.md](VISUAL_ASSIST.md)
 
 ### EXTROVERT Settings (Optional)
 
-Proactive AI conversation feature that allows Home Assistant automations to trigger bike4mind responses spoken via TTS:
+EXTROVERT allows Home Assistant automations to send prompts to bike4mind for AI processing, with responses spoken aloud through TTS. This creates a conversational smart home where the assistant can proactively start conversations based on events.
 
+**Configuration Options:**
 - **extrovert_enabled**: Enable/disable EXTROVERT feature (default: `false`)
 - **extrovert_rate_limit**: Maximum requests per hour (default: `10`, range: 1-100)
+- **extrovert_tts_entity_id**: TTS engine entity ID (default: `tts.piper`)
 - **extrovert_tts_voice**: Voice name for TTS responses (optional, blank = use TTS service default)
 
-**Example**:
+#### Setup Steps
+
+**1. Enable EXTROVERT**
+
+Go to bike4mind add-on **Configuration** tab:
+
 ```yaml
 extrovert_enabled: true
 extrovert_rate_limit: 10
-extrovert_tts_voice: "en_US-lessac-medium"
+extrovert_tts_entity_id: "tts.piper"
+extrovert_tts_voice: "en_US-lessac-medium"  # Optional
 ```
 
-**Key Features**:
+- Set `extrovert_tts_entity_id` to match your TTS engine (e.g., `tts.piper`, `tts.google_translate_say`)
+- Set `extrovert_tts_voice` to a specific voice, or leave blank to use default
+
+**Finding Your TTS Voice:**
+1. Go to **Settings → Voice Assistants → Text-to-Speech**
+2. Click on your TTS engine (e.g., Piper)
+3. Copy the voice name (e.g., `en_US-lessac-medium`)
+
+**2. Restart the Add-on**
+
+Go to **Info** tab → Click **Restart**
+
+Check **Log** tab for: `EXTROVERT enabled - Rate limit: 10 requests per hour`
+
+**3. Create REST Command**
+
+Add to Home Assistant's `configuration.yaml`:
+
+```yaml
+rest_command:
+  extrovert_trigger:
+    url: "http://YOUR_HA_IP:3000/v1/extrovert/trigger"
+    method: POST
+    headers:
+      Authorization: "Bearer YOUR_SHIM_API_KEY"
+      Content-Type: "application/json"
+    payload: >
+      {
+        "prompt": "{{ prompt }}",
+        "context": {{ context | tojson }},
+        "tts_config": {
+          "media_player": "{{ media_player }}"
+        }
+      }
+```
+
+Replace:
+- `YOUR_HA_IP` with your Home Assistant IP address (from Step 1 in installation)
+- `YOUR_SHIM_API_KEY` with the `shim_api_key` from add-on configuration (Step 3 in installation)
+
+**Important:** After editing `configuration.yaml`, restart Home Assistant:
+- Go to **Settings → System → Restart**
+
+**4. Create Motion Detection Automation**
+
+Example: Greet when someone enters the living room
+
+**Using Home Assistant GUI:**
+
+1. Go to **Settings → Automations & Scenes**
+2. Click **Create Automation** (bottom right)
+3. Click **Create new automation**
+4. Add trigger:
+   - **Trigger type**: State
+   - **Entity**: `binary_sensor.living_room_motion` (your motion sensor)
+   - **To**: `Detected`
+5. Add condition (optional but recommended):
+   - **Condition type**: Time
+   - **After**: `18:00:00`
+   - **Before**: `23:00:00`
+6. Add action:
+   - **Action type**: Call service
+   - **Service**: `rest_command.extrovert_trigger`
+   - **Action data**:
+     ```yaml
+     prompt: |
+       Someone just entered the living room. Say a greeting in one sentence. It should be playful and friendly.
+     context:
+       trigger_type: motion_detected
+       location: living_room
+     tts_config:
+       media_player: media_player.YOUR_SPEAKER_NAME
+     ```
+7. Replace `media_player.YOUR_SPEAKER_NAME` with your actual media player entity ID
+8. Click **Save**
+9. Name it: `EXTROVERT - Living Room Motion`
+
+**Important Format Note:** The `media_player` must be inside `tts_config` as shown above. This structure is required by the EXTROVERT API.
+
+**5. Test It**
+
+Trigger motion in your living room. Within 5-30 seconds, you should hear bike4mind's response through your speaker.
+
+#### More Automation Examples
+
+**Temperature Alert:**
+```yaml
+prompt: |
+  The bedroom temperature is {{ states('sensor.bedroom_temperature') }}°F. Comment on this in a lighthearted way in 1 sentence.
+context:
+  trigger_type: temperature_alert
+  temperature: "{{ states('sensor.bedroom_temperature') }}"
+tts_config:
+  media_player: media_player.bedroom_speaker
+```
+
+**Door Open Welcome:**
+```yaml
+prompt: |
+  The front door just opened at {{ now().strftime('%I:%M %p') }}. Welcome whoever arrived home in 1 sentence.
+context:
+  trigger_type: door_opened
+  location: front_door
+tts_config:
+  media_player: media_player.living_room_speaker
+```
+
+**Device Status:**
+```yaml
+prompt: |
+  The washing machine cycle just finished. Let me know in 1 sentence.
+context:
+  trigger_type: appliance_finished
+  device: washing_machine
+tts_config:
+  media_player: media_player.kitchen_speaker
+```
+
+**Prompt Engineering Tips:**
+- Ask for "1 sentence" to keep responses brief
+- Include tone guidance ("friendly", "lighthearted", "motivational")
+- Provide context about what happened
+- Use specific instructions ("greet them", "welcome them home")
+- Use Home Assistant templating for dynamic data (time, sensor values, etc.)
+
+**Key Features:**
 - Automation-triggered prompts sent to bike4mind
 - Responses spoken via Home Assistant TTS
 - Same session ID as interactive conversations (context continuity)
-- Rate limiting to prevent spam
+- Rate limiting to prevent spam (default: 10 requests/hour)
 - Busy state management (one request at a time)
-- Silent error handling
-- Integrates with VISUAL_ASSIST
+- Silent error handling (errors logged but not spoken)
+- Integrates with VISUAL_ASSIST for visual feedback
 
-**Use Cases**:
-- Motion detection: "Someone entered the living room. Greet them in 1 sentence."
-- Temperature alerts: "The bedroom is 78°F. Comment on this in 1 sentence."
-- Door events: "The front door opened at 5:30 PM. Welcome them home in 1 sentence."
-- Device status: "The washing machine finished. Let me know in 1 sentence."
+**Important Limitation:**
+After EXTROVERT speaks a response, the voice assistant does NOT automatically start listening. Users must say the wake word again to respond. This is a Home Assistant platform limitation. Best suited for one-way announcements or rhetorical questions.
 
-For complete specification and setup guide, see [EXTROVERT.md](EXTROVERT.md)
+For complete specification and advanced examples, see [EXTROVERT.md](EXTROVERT.md)
 
 ## Home Assistant Integration
 
