@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.5] - 2025-10-12
+
+### Fixed
+- Corrected TTS service call format to use `entity_id: tts.piper` and `media_player_entity_id`
+- Previously was incorrectly using `entity_id` for media player instead of TTS engine
+
+### Technical
+- `entity_id` now points to TTS engine (tts.piper)
+- `media_player_entity_id` now points to media player device
+- This matches Home Assistant's tts.speak service requirements
+
 ## [1.3.4] - 2025-10-12
 
 ### Fixed

@@ -51,7 +51,7 @@ EXTROVERT_RATE_LIMIT = int(os.environ.get('EXTROVERT_RATE_LIMIT', '10'))
 EXTROVERT_TTS_VOICE = os.environ.get('EXTROVERT_TTS_VOICE', '')
 
 # Initialize FastAPI
-app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.4")
+app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.5")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None
@@ -544,15 +544,19 @@ if EXTROVERT_ENABLED:
             voice = voice_override or (EXTROVERT_TTS_VOICE if EXTROVERT_TTS_VOICE else None)
 
             # Build service data according to HA API format for tts.speak
-            # The tts.speak service (HA 2023.5+) uses this format
+            # The tts.speak service requires:
+            # - entity_id: the TTS engine (tts.piper, tts.google_translate_say, etc.)
+            # - media_player_entity_id: where to play the audio
+            # - message: the text to speak
             service_data = {
                 "message": text,
-                "cache": False
+                "cache": False,
+                "entity_id": "tts.piper"  # Default to Piper TTS
             }
 
-            # entity_id specifies which media player(s) to use
+            # media_player_entity_id specifies where to play the audio
             if media_player:
-                service_data["entity_id"] = media_player
+                service_data["media_player_entity_id"] = media_player
 
             # Add voice option if specified (for Piper and other TTS engines)
             if voice:
