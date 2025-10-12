@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.14] - 2025-10-12
+
+### Fixed
+- Cloud TTS cache parameter corrected to `false` (not `true`)
+- Based on actual Developer Tools YAML showing `cache: false`
+
+### Technical
+- Both cloud and local TTS now use `cache: false`
+- Cloud TTS: `entity_id` for media player, `cache: false`
+- Other TTS: `media_player_entity_id`, `cache: false`
+
 ## [1.3.13] - 2025-10-12
 
 ### Fixed

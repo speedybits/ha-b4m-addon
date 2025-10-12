@@ -53,7 +53,7 @@ EXTROVERT_TTS_ENTITY_ID = os.environ.get('EXTROVERT_TTS_ENTITY_ID', 'tts.piper')
 EXTROVERT_TTS_VOICE = os.environ.get('EXTROVERT_TTS_VOICE', '')
 
 # Initialize FastAPI
-app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.13")
+app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.14")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None
@@ -575,11 +575,8 @@ if EXTROVERT_ENABLED:
                 "message": text
             }
 
-            # Add cache parameter - cloud TTS uses true, others use false
-            if "cloud" in EXTROVERT_TTS_ENTITY_ID.lower():
-                service_data["cache"] = True
-            else:
-                service_data["cache"] = False
+            # Add cache parameter - always false for both cloud and local TTS
+            service_data["cache"] = False
 
             # Media player parameter name differs by TTS engine
             # Cloud TTS uses "entity_id", others use "media_player_entity_id"
