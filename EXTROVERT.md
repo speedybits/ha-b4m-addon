@@ -303,10 +303,49 @@ EXTROVERT uses the **same session ID** as interactive conversations with bike4mi
 
 ## Limitations
 
-1. One request at a time (no queue)
-2. 5-30 second response latency
-3. Rate limited to prevent spam
-4. No cost tracking
-5. No per-location voice configuration
-6. Requires internet for bike4mind API
-7. No urgent/priority mode
+### 1. No Automatic Listening After TTS (Important)
+
+**Home Assistant does not currently support automatic listening after TTS responses without requiring a wake word.**
+
+After EXTROVERT speaks a response via TTS, the voice assistant will NOT automatically start listening for a follow-up. Users must say the wake word again to respond.
+
+**Why This Matters:**
+- Questions like "How was your day?" won't get immediate voice responses
+- Users need to manually trigger the assistant (wake word or button) to reply
+- This is a Home Assistant platform limitation, not an EXTROVERT limitation
+
+**Best Practices Given This Limitation:**
+
+✅ **Design for one-way announcements:**
+- "The laundry is done!"
+- "Welcome home!"
+- "The bedroom is getting warm."
+
+✅ **Use rhetorical or optional questions:**
+- "How was your day?" (understanding no immediate response expected)
+- "Need anything?" (users can choose to respond later via wake word)
+
+❌ **Avoid expecting immediate two-way conversation:**
+- Don't design prompts that require immediate follow-up responses
+- Don't expect natural back-and-forth conversation flow
+
+**Technical Background:**
+
+Home Assistant's voice pipeline architecture doesn't support "continued conversation" mode where the assistant automatically listens after speaking. This feature has been requested in the HA community (GitHub architecture discussion #1022) but is not yet implemented due to challenges with:
+- Maintaining conversation context
+- Intent matching for follow-up responses
+- Determining when to stop listening
+
+**Future Possibility:**
+
+If Home Assistant adds continued conversation support in the future, EXTROVERT could be enhanced to support automatic listening after TTS responses.
+
+### 2. Other Limitations
+
+- One request at a time (no queue)
+- 5-30 second response latency
+- Rate limited to prevent spam
+- No cost tracking
+- No per-location voice configuration
+- Requires internet for bike4mind API
+- No urgent/priority mode
