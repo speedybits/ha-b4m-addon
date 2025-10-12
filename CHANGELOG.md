@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.10] - 2025-10-12
+
+### Fixed
+- EXTROVERT TTS compatibility with Home Assistant Cloud (`tts.cloud_say`)
+- Removed `cache` parameter for cloud TTS engines (not supported)
+- Cache parameter now only included for non-cloud TTS engines
+
+### Technical
+- Conditional cache parameter based on TTS entity ID detection
+- Cloud TTS engines identified by "cloud" in entity_id string
+
 ## [1.3.9] - 2025-10-12
 
 ### Changed
