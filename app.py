@@ -53,7 +53,7 @@ EXTROVERT_TTS_ENTITY_ID = os.environ.get('EXTROVERT_TTS_ENTITY_ID', 'tts.piper')
 EXTROVERT_TTS_VOICE = os.environ.get('EXTROVERT_TTS_VOICE', '')
 
 # Initialize FastAPI
-app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.14")
+app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.15")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None
@@ -224,9 +224,13 @@ async def create_b4m_quest(message: str) -> Optional[str]:
     if not B4M_API_KEY or not HA_B4M_SESSION_ID or not B4M_USER_ID:
         raise HTTPException(status_code=500, detail="bike4mind credentials not configured")
 
+    # Prepend current date and time to the message
+    current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    message_with_timestamp = f"[Current date/time: {current_datetime}] {message}"
+
     payload = {
         "sessionId": HA_B4M_SESSION_ID,
-        "message": message,
+        "message": message_with_timestamp,
         "historyCount": 10,
         "fabFileIds": [],
         "messageFileIds": [],

@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.15] - 2025-10-13
+
+### Added
+- Date and time context automatically prepended to all prompts sent to bike4mind
+- Format: `[Current date/time: YYYY-MM-DD HH:MM:SS]` before each user message
+- Enables bike4mind to provide time-aware responses (e.g., "good morning", relative times)
+
+### Technical
+- Timestamp added in `create_b4m_quest()` function using `datetime.now()`
+- Applied to all prompt types: chat completions and EXTROVERT triggers
+
 ## [1.3.14] - 2025-10-12
 
 ### Fixed
