@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-bike4mind OpenAI Shim for Home Assistant
+bike4mind addon for Home Assistant
 Translates OpenAI Chat Completion API to bike4mind quest polling API
 """
 
@@ -53,7 +53,7 @@ EXTROVERT_TTS_ENTITY_ID = os.environ.get('EXTROVERT_TTS_ENTITY_ID', 'tts.piper')
 EXTROVERT_TTS_VOICE = os.environ.get('EXTROVERT_TTS_VOICE', '')
 
 # Initialize FastAPI
-app = FastAPI(title="bike4mind OpenAI Shim", version="1.3.15")
+app = FastAPI(title="bike4mind addon", version="1.3.16")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None
@@ -152,7 +152,7 @@ async def startup_event():
     """Initialize HTTP client on startup"""
     global http_client
     http_client = httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=5.0))
-    print(f"🚀 bike4mind OpenAI Shim v{app.version} started")
+    print(f"🚀 bike4mind addon v{app.version} started")
     print(f"   B4M Base: {B4M_BASE}")
     print(f"   Session ID: {HA_B4M_SESSION_ID[:8]}..." if HA_B4M_SESSION_ID else "   ⚠️ No session ID configured")
     print(f"   Auth: {'Enabled' if SHIM_API_KEY else 'Disabled (not recommended)'}")
@@ -166,7 +166,7 @@ async def shutdown_event():
     global http_client
     if http_client:
         await http_client.aclose()
-        print("🛑 bike4mind OpenAI Shim stopped")
+        print("🛑 bike4mind addon stopped")
 
 
 # Authentication dependency

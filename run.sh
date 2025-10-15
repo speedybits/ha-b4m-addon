@@ -70,7 +70,7 @@ if [ -z "$B4M_USER_ID" ]; then
     exit 1
 fi
 
-bashio::log.info "Starting bike4mind OpenAI Shim..."
+bashio::log.info "Starting bike4mind addon..."
 
 # Run the Python application
 exec python3 /app/app.py

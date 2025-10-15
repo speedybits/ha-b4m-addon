@@ -38,7 +38,7 @@ You'll need three pieces of information from bike4mind:
 ### Install the Add-on
 
 1. Refresh the add-on store page
-2. Find **bike4mind OpenAI Shim** in the list
+2. Find **bike4mind addon** in the list
 3. Click on it
 4. Click **Install**
 5. Wait for installation to complete
@@ -67,7 +67,7 @@ b4m_model: "gpt-4o-mini"  # Options: gpt-4o-mini, gpt-4o, gpt-3.5-turbo, gpt-4
 2. Click **Start**
 3. Enable **Start on boot** and **Watchdog** (recommended)
 4. Check the **Log** tab for startup messages
-5. Verify you see: `🚀 bike4mind OpenAI Shim started`
+5. Verify you see: `🚀 bike4mind addon started`
 
 ## Step 5: Find Your Home Assistant LAN IP
 
@@ -198,7 +198,7 @@ You need three animated GIF files:
 
 ### Step 11B: Configure VISUAL_ASSIST
 
-1. Go to bike4mind OpenAI Shim add-on **Configuration** tab
+1. Go to bike4mind addon **Configuration** tab
 2. Enable and configure VISUAL_ASSIST:
 
 ```yaml
@@ -250,7 +250,7 @@ EXTROVERT allows Home Assistant automations to send prompts to bike4mind for AI 
 
 ### Step 12A: Configure EXTROVERT
 
-1. Go to bike4mind OpenAI Shim add-on **Configuration** tab
+1. Go to bike4mind addon **Configuration** tab
 2. Enable and configure EXTROVERT:
 
 ```yaml

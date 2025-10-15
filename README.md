@@ -1,6 +1,10 @@
-# bike4mind OpenAI Shim for Home Assistant
+# bike4mind addon for Home Assistant
 
 OpenAI-compatible API shim that translates between Home Assistant's Extended OpenAI Conversation integration and bike4mind's quest-based polling API.
+
+## What's New in 1.3.15
+
+🕐 **Automatic Date/Time Context** - Every prompt now includes the current date and time, enabling bike4mind to provide time-aware responses like "good morning" or calculate relative times. The timestamp is automatically prepended in the format `[Current date/time: YYYY-MM-DD HH:MM:SS]` to all messages sent to bike4mind.
 
 ## Features
 
@@ -58,7 +62,7 @@ Home Assistant Extended OpenAI Conversation
 
 2. **Install the add-on**:
    - Refresh the add-on store page
-   - Find "bike4mind OpenAI Shim" in the add-on store
+   - Find "bike4mind addon" in the add-on store
    - Click **Install**
 
 3. **Configure** via add-on configuration tab:
@@ -117,10 +121,10 @@ You need three animated GIF files:
 Option A - Self-hosted in Home Assistant (recommended):
 1. Upload GIFs to `/config/www/` directory in Home Assistant
 2. Access via: `http://YOUR_HA_IP:8123/local/filename.gif`
-3. Example paths:
-   - `/config/www/thinking.gif` → `http://192.168.1.100:8123/local/thinking.gif`
-   - `/config/www/speaking.gif` → `http://192.168.1.100:8123/local/speaking.gif`
-   - `/config/www/idle.gif` → `http://192.168.1.100:8123/local/idle.gif`
+3. Example paths (replace `YOUR_HA_IP` with your Home Assistant IP, e.g., 192.168.1.100):
+   - `/config/www/thinking.gif` → `http://YOUR_HA_IP:8123/local/thinking.gif`
+   - `/config/www/speaking.gif` → `http://YOUR_HA_IP:8123/local/speaking.gif`
+   - `/config/www/idle.gif` → `http://YOUR_HA_IP:8123/local/idle.gif`
 
 Option B - Cloud hosting:
 - Upload to Imgur, GitHub, or similar service
@@ -261,11 +265,18 @@ Example: Greet when someone enters the living room
      tts_config:
        media_player: media_player.YOUR_SPEAKER_NAME
      ```
-7. Replace `media_player.YOUR_SPEAKER_NAME` with your actual media player entity ID
+7. Replace `media_player.YOUR_SPEAKER_NAME` with your actual media player entity ID (see below)
 8. Click **Save**
 9. Name it: `EXTROVERT - Living Room Motion`
 
 **Important Format Note:** The `media_player` must be inside `tts_config` as shown above. This structure is required by the EXTROVERT API.
+
+**Finding Your Media Player Entity ID:**
+1. Go to **Settings → Devices & Services**
+2. Click on the **Entities** tab at the top
+3. In the search box, type "media_player"
+4. Find your speaker/media player in the list
+5. Copy the **Entity ID** (e.g., `media_player.living_room_speaker`, `media_player.kitchen_display`)
 
 **5. Test It**
 
@@ -360,7 +371,7 @@ After installing the add-on and Extended OpenAI Conversation:
    **Base Url:**
    - ⚠️ **IMPORTANT**: Change this from `https://api.openai.com/v1` to your Home Assistant IP
    - Enter: `http://YOUR_HA_IP:3000/v1` (use YOUR actual HA IP from step 1)
-   - Example: `http://192.168.68.111:3000/v1`
+   - Example: `http://192.168.1.100:3000/v1`
    - **Must include port 3000**
    - Do NOT use `localhost` or `127.0.0.1` (won't work)
 
@@ -403,6 +414,8 @@ After installing the add-on and Extended OpenAI Conversation:
 
 ## Testing
 
+### Test Using Home Assistant Assist
+
 Test the integration using Home Assistant's Assist interface:
 
 1. **Go to Settings → Voice Assistants → Assist**
@@ -414,6 +427,36 @@ Test the integration using Home Assistant's Assist interface:
 4. **Response time**: Expect 5-30 seconds for all queries (bike4mind processing)
 
 **Note**: bike4mind handles both conversation AND device control, so no mode switching is needed.
+
+### Test Using Command Line
+
+**Test Health Endpoint:**
+```bash
+curl http://YOUR_HA_IP:3000/healthz
+```
+
+**Test Chat Completion (No Auth):**
+```bash
+curl -X POST http://YOUR_HA_IP:3000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [{"role": "user", "content": "Hello"}],
+    "model": "bike4mind",
+    "stream": false
+  }'
+```
+
+**Test Chat Completion (With Auth):**
+```bash
+curl -X POST http://YOUR_HA_IP:3000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_SHIM_API_KEY" \
+  -d '{
+    "messages": [{"role": "user", "content": "Hello"}],
+    "model": "bike4mind",
+    "stream": false
+  }'
+```
 
 ## API Endpoints
 
@@ -516,39 +559,6 @@ Here's the action:
 Enable tool-calling in Extended OpenAI Conversation integration settings:
 - ✅ **Control Home Assistant** enabled
 
-## Testing
-
-### Test Health Endpoint
-
-```bash
-curl http://YOUR_HA_IP:3000/healthz
-```
-
-### Test Chat Completion (No Auth)
-
-```bash
-curl -X POST http://YOUR_HA_IP:3000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [{"role": "user", "content": "Hello"}],
-    "model": "bike4mind",
-    "stream": false
-  }'
-```
-
-### Test Chat Completion (With Auth)
-
-```bash
-curl -X POST http://YOUR_HA_IP:3000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_SHIM_API_KEY" \
-  -d '{
-    "messages": [{"role": "user", "content": "Hello"}],
-    "model": "bike4mind",
-    "stream": false
-  }'
-```
-
 ## Troubleshooting
 
 ### "Unauthorized" Error
@@ -628,5 +638,5 @@ MIT
 ## Support
 
 For issues and questions:
-- GitHub Issues: [Your repository URL]
+- GitHub Issues: https://github.com/speedybits/ha-b4m-addon/issues
 - Specification: See `HA_B4M_SPEC.md` in repository
