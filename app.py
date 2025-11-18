@@ -53,7 +53,7 @@ EXTROVERT_TTS_ENTITY_ID = os.environ.get('EXTROVERT_TTS_ENTITY_ID', 'tts.piper')
 EXTROVERT_TTS_VOICE = os.environ.get('EXTROVERT_TTS_VOICE', '')
 
 # Initialize FastAPI
-app = FastAPI(title="bike4mind addon", version="1.3.16")
+app = FastAPI(title="bike4mind addon", version="1.3.17")
 
 # HTTP client
 http_client: Optional[httpx.AsyncClient] = None
@@ -262,8 +262,13 @@ async def create_b4m_quest(message: str) -> Optional[str]:
         response.raise_for_status()
         data = response.json()
 
-        # Quest ID may be in 'id' or 'questId' field
-        quest_id = data.get('questId') or data.get('id')
+        # Quest ID may be in multiple locations depending on API response format
+        quest_id = (
+            data.get('questId') or
+            data.get('id') or
+            (data.get('quest', {}).get('id')) or
+            (data.get('quest', {}).get('_id'))
+        )
         if not quest_id:
             print(f"⚠️ No quest ID in response: {data}")
             return None

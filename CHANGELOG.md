@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.17] - 2025-11-17
+
+### Fixed
+- Quest ID extraction now handles nested response format from bike4mind API
+- Previously failed to find quest ID in `data['quest']['id']` or `data['quest']['_id']`
+- Now checks multiple possible locations: top-level `questId`, `id`, and nested `quest.id`, `quest._id`
+
+### Technical
+- Updated `create_b4m_quest()` to handle both flat and nested API response formats
+- Prevents "⚠️ No quest ID in response" warning when quest is successfully created
+
 ## [1.3.16] - 2025-10-14
 
 ### Changed

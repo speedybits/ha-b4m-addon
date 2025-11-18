@@ -1,6 +1,6 @@
 name: "bike4mind addon"
 description: "OpenAI-compatible API shim for bike4mind integration with Home Assistant"
-version: "1.3.16"
+version: "1.3.17"
 slug: "b4m_shim"
 init: false
 arch:
